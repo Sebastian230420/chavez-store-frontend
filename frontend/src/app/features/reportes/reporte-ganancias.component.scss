@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.cs-acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cs-grafica {
+  position: relative;
+  height: 320px;
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f3f5f7;
+  color: var(--cs-texto-suave);
+  font-size: 12.5px;
+  line-height: 1.5;
+}

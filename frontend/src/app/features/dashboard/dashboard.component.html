@@ -1,0 +1,240 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Dashboard"
+    icono="dashboard"
+    subtitulo="Resumen de la operación del día: ventas registradas, alertas de stock y cobranza."
+  >
+    <button mat-stroked-button type="button" (click)="cargar()" [disabled]="cargando()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+    @if (esAdmin()) {
+      <a mat-flat-button routerLink="/ventas/nueva">
+        <mat-icon>add</mat-icon>
+        Registrar venta
+      </a>
+    }
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (ventas(); as dia) {
+    <section class="cs-kpis">
+      <app-kpi-card
+        etiqueta="Ventas registradas"
+        [valor]="(dia.resumen.ventasCount | entero) + ''"
+        [detalle]="'del ' + (fecha() | fecha)"
+        icono="receipt_long"
+        tono="info"
+      />
+      <app-kpi-card
+        etiqueta="Ingresos"
+        [valor]="dia.resumen.ingresosTotal | moneda"
+        detalle="Sin impuestos: subtotal = total"
+        icono="payments"
+        tono="ok"
+      />
+      <app-kpi-card
+        etiqueta="Utilidad"
+        [valor]="dia.resumen.utilidad | moneda"
+        [detalle]="margenHoy() !== null ? (margenHoy() | porcentaje) + ' de margen' : 'sin ingresos'"
+        icono="trending_up"
+        [tono]="margenHoy() !== null && margenHoy()! < 0 ? 'error' : 'ok'"
+      />
+      <app-kpi-card
+        etiqueta="Costo de ventas"
+        [valor]="dia.resumen.costoTotal | moneda"
+        detalle="Snapshot del costo al registrar"
+        icono="inventory"
+        tono="neutro"
+      />
+      <app-kpi-card
+        etiqueta="Crédito otorgado"
+        [valor]="dia.resumen.creditoOtorgado | moneda"
+        detalle="Ventas CREDITO de hoy"
+        icono="account_balance"
+        tono="warn"
+      />
+      <app-kpi-card
+        etiqueta="Abonos recibidos"
+        [valor]="dia.resumen.abonosRecibidos | moneda"
+        detalle="Único dinero registrado"
+        icono="savings"
+        tono="ok"
+      />
+    </section>
+
+    <div class="cs-dos-columnas">
+      <mat-card class="cs-panel">
+        <mat-card-header>
+          <mat-card-title>Productos más vendidos hoy</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (dia.topProductos.length) {
+            <table class="cs-tabla">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="cs-num">Unidades</th>
+                  <th class="cs-num">Ingresos</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of dia.topProductos; track item.producto) {
+                  <tr>
+                    <td>{{ item.producto }}</td>
+                    <td class="cs-num">{{ item.unidades | entero }}</td>
+                    <td class="cs-num">{{ item.ingresos | moneda }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="cs-vacio">Aún no hay ventas registradas hoy.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="cs-panel">
+        <mat-card-header>
+          <mat-card-title>Abonos del día</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (dia.abonosDelDia.length) {
+            <table class="cs-tabla">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Método</th>
+                  <th class="cs-num">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (abono of dia.abonosDelDia; track abono.cliente + abono.amount) {
+                  <tr>
+                    <td>{{ abono.cliente }}</td>
+                    <td class="cs-suave">{{ abono.method }}</td>
+                    <td class="cs-num">{{ abono.amount | moneda }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="cs-vacio">No se registraron abonos hoy.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  @if (stock(); as alertas) {
+    <div class="cs-dos-columnas cs-mt">
+      <mat-card class="cs-panel">
+        <mat-card-header>
+          <mat-card-title class="cs-flex">
+            <span>Stock crítico</span>
+            <a mat-button routerLink="/reportes/stock">Ver reporte</a>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (alertas.stockCritico.length) {
+            <table class="cs-tabla">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="cs-num">Stock</th>
+                  <th class="cs-num">Mínimo</th>
+                  <th class="cs-num">Faltante</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of alertas.stockCritico; track p.productoId) {
+                  <tr>
+                    <td>{{ p.nombre }}</td>
+                    <td class="cs-num">{{ p.stock | entero }}</td>
+                    <td class="cs-num cs-suave">{{ p.stockMin | entero }}</td>
+                    <td class="cs-num cs-error">{{ p.faltante | entero }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="cs-vacio">Ningún producto por debajo del mínimo.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="cs-panel">
+        <mat-card-header>
+          <mat-card-title>Lotes por vencer (próximos 30 días)</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (alertas.porVencer.length) {
+            <table class="cs-tabla">
+              <thead>
+                <tr>
+                  <th>Producto / Lote</th>
+                  <th>Vence</th>
+                  <th class="cs-num">Días</th>
+                  <th class="cs-num">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (lote of alertas.porVencer; track lote.lotCode) {
+                  <tr>
+                    <td>
+                      {{ lote.nombre }}
+                      <span class="cs-mono cs-suave"> · {{ lote.lotCode }}</span>
+                    </td>
+                    <td>{{ lote.expiryDate | fecha }}</td>
+                    <td class="cs-num" [class.cs-error]="lote.diasRestantes <= 7">
+                      {{ lote.diasRestantes | entero }}
+                    </td>
+                    <td class="cs-num">{{ lote.valor | moneda }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="cs-vacio">Ningún lote vence en los próximos 30 días.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  @if (cartera(); as porCobrar) {
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header>
+        <mat-card-title class="cs-flex">
+          <span>Cuentas por cobrar</span>
+          <a mat-button routerLink="/reportes/cuentas-por-cobrar">Ver antigüedad</a>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="cs-kpis cs-kpis--planas">
+          <app-kpi-card
+            etiqueta="Clientes con deuda"
+            [valor]="porCobrar.resumen.clientesConDeuda | entero"
+            icono="people"
+            tono="warn"
+          />
+          <app-kpi-card
+            etiqueta="Saldo total"
+            [valor]="porCobrar.resumen.saldoTotal | moneda"
+            icono="account_balance_wallet"
+            tono="info"
+          />
+          <app-kpi-card
+            etiqueta="Deuda mayor a 90 días"
+            [valor]="porCobrar.resumen.deudaMas90Dias | moneda"
+            icono="schedule"
+            tono="error"
+          />
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

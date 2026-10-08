@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  margin-bottom: 16px;
+}
+
+.cs-mt {
+  margin-top: 10px;
+}
+
+.cs-select {
+  width: 180px;
+}
+
+.cs-select--ancho {
+  width: 240px;
+}
+
+.cs-sub {
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+cs-filtros mat-form-field,
+.cs-filtros app-rango-fechas {
+  display: block;
+}

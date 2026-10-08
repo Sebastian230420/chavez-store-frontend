@@ -1,0 +1,140 @@
+<h2 mat-dialog-title>
+  {{ resultado() ? 'Compra recibida' : 'Recibir compra en almacén' }}
+</h2>
+
+<mat-dialog-content>
+  <p class="cs-sub">
+    <strong>{{ compra.document }}</strong> · {{ compra.proveedor.name }} ·
+    {{ unidadesTotales() | entero }} unidades base
+  </p>
+
+  @if (!resultado()) {
+    <div class="cs-confirmacion">
+      <p>Al confirmar, el sistema:</p>
+      <ol>
+        <li>Crea un lote por ítem, con su fecha de vencimiento</li>
+        <li>Suma las unidades base al stock de cada producto</li>
+        <li>Recalcula el costo promedio ponderado de cada producto</li>
+        <li>Registra un movimiento <code>COMPRA</code> por ítem</li>
+        <li>Cambia el estado de la compra a RECIBIDA</li>
+      </ol>
+
+      <div class="cs-preview">
+        <h4>Se ingresarán</h4>
+        <table class="cs-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Presentación</th>
+              <th class="cs-num">Unidades base</th>
+              <th class="cs-num">Costo unitario</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of compra.detalles; track $index) {
+              <tr>
+                <td>{{ d.producto }}</td>
+                <td>{{ d.presentacion }}</td>
+                <td class="cs-num">{{ d.unitsBase | entero }}</td>
+                <td class="cs-num">{{ d.unitCost | moneda: 4 }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  } @else {
+    <div class="cs-resultado">
+      <h4>Lotes creados</h4>
+      <table class="cs-tabla">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Lote</th>
+            <th>Vencimiento</th>
+            <th class="cs-num">Cantidad</th>
+            <th class="cs-num">Costo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (lote of resultado()!.lotesCreados; track lote.lotCode) {
+            <tr>
+              <td>{{ lote.productoNombre || 'Producto #' + lote.productoId }}</td>
+              <td class="cs-mono">{{ lote.lotCode }}</td>
+              <td>{{ lote.expiryDate | fecha }}</td>
+              <td class="cs-num">{{ lote.qtyReceived | entero }}</td>
+              <td class="cs-num">{{ lote.costUnit | moneda: 4 }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <mat-divider />
+
+      <h4>Stock y costo actualizados</h4>
+      <table class="cs-tabla">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th class="cs-num">Stock</th>
+            <th class="cs-num">Costo anterior</th>
+            <th class="cs-num">Costo nuevo</th>
+            <th class="cs-num">Variación</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of resultado()!.productosActualizados; track p.productoId) {
+            <tr>
+              <td>{{ p.productoNombre || 'Producto #' + p.productoId }}</td>
+              <td class="cs-num">
+                {{ p.stockAnterior | entero }} → <strong>{{ p.stockNuevo | entero }}</strong>
+              </td>
+              <td class="cs-num">{{ p.costoAnterior | moneda: 4 }}</td>
+              <td class="cs-num"><strong>{{ p.costoNuevo | moneda: 4 }}</strong></td>
+              <td
+                class="cs-num"
+                [class.cs-error]="p.costoNuevo < p.costoAnterior"
+                [class.cs-ok]="p.costoNuevo > p.costoAnterior"
+              >
+                @if (p.costoAnterior > 0) {
+                  {{ ((p.costoNuevo - p.costoAnterior) / p.costoAnterior) * 100 | number: '1.1-1' }}%
+                } @else {
+                  —
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      @if (costoSubio()) {
+        <p class="cs-nota cs-nota--warn">
+          <mat-icon inline>trending_up</mat-icon>
+          El costo promedio subió: las ventas futuras partirán de un costo mayor.
+        </p>
+      }
+      @if (costoBajo()) {
+        <p class="cs-nota cs-nota--ok">
+          <mat-icon inline>trending_down</mat-icon>
+          El costo promedio bajó: la compra entró más barata que el stock anterior.
+        </p>
+      }
+    </div>
+  }
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">
+    {{ resultado() ? 'Cerrar' : 'Cancelar' }}
+  </button>
+  @if (!resultado()) {
+    <button mat-flat-button type="button" [disabled]="cargando()" (click)="confirmar()">
+      <mat-icon>move_to_inbox</mat-icon>
+      Confirmar recepción
+    </button>
+  }
+</mat-dialog-actions>

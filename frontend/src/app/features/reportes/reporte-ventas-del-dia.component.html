@@ -1,0 +1,166 @@
+<app-page-header
+  titulo="Ventas del día"
+  icono="today"
+  subtitulo="Resumen de lo registrado en la fecha elegida. No es un arqueo de caja: el sistema no registra cobros de mostrador."
+/>
+
+<div class="cs-filtros cs-no-print">
+  <mat-form-field appearance="outline" class="cs-fecha" subscriptSizing="dynamic">
+    <mat-label>Fecha</mat-label>
+    <input matInput type="date" [ngModel]="fecha()" (ngModelChange)="cambiarFecha($event)" />
+    <mat-icon matPrefix>event</mat-icon>
+  </mat-form-field>
+
+  <button mat-stroked-button type="button" (click)="hoyClick()">
+    <mat-icon>today</mat-icon>
+    Hoy
+  </button>
+  <button mat-stroked-button type="button" (click)="cargar()">
+    <mat-icon>refresh</mat-icon>
+    Actualizar
+  </button>
+</div>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (reporte(); as r) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Ventas registradas"
+      [valor]="(r.resumen.ventasCount | entero) + ''"
+      [detalle]="fecha() | fecha"
+      icono="receipt_long"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Ingresos"
+      [valor]="r.resumen.ingresosTotal | moneda"
+      detalle="Subtotal = total"
+      icono="payments"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Costo de ventas"
+      [valor]="r.resumen.costoTotal | moneda"
+      icono="inventory"
+      tono="neutro"
+    />
+    <app-kpi-card
+      etiqueta="Utilidad"
+      [valor]="r.resumen.utilidad | moneda"
+      [detalle]="margen() !== null ? (margen() | porcentaje) + ' de margen' : 'sin ingresos'"
+      icono="trending_up"
+      [tono]="margen() !== null && margen()! < 0 ? 'error' : 'ok'"
+    />
+    <app-kpi-card
+      etiqueta="Crédito otorgado"
+      [valor]="r.resumen.creditoOtorgado | moneda"
+      detalle="Ventas CREDITO del día"
+      icono="account_balance"
+      tono="warn"
+    />
+    <app-kpi-card
+      etiqueta="Abonos recibidos"
+      [valor]="r.resumen.abonosRecibidos | moneda"
+      [detalle]="cobertura() !== null ? (cobertura() | porcentaje) + ' del crédito otorgado' : 'Único dinero registrado'"
+      icono="savings"
+      tono="ok"
+    />
+  </div>
+
+  <div class="cs-dos-columnas">
+    <mat-card class="cs-panel">
+      <mat-card-header><mat-card-title>Productos más vendidos</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @if (r.topProductos.length) {
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="cs-num">Unidades</th>
+                <th class="cs-num">Ingresos</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of r.topProductos; track p.producto) {
+                <tr>
+                  <td>{{ p.producto }}</td>
+                  <td class="cs-num">{{ p.unidades | entero }}</td>
+                  <td class="cs-num">{{ p.ingresos | moneda }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <app-empty-state icono="inventory_2" titulo="Sin ventas el día elegido" />
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="cs-panel">
+      <mat-card-header><mat-card-title>Abonos del día</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @if (r.abonosDelDia.length) {
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Método</th>
+                <th class="cs-num">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of r.abonosDelDia; track a.cliente + a.amount) {
+                <tr>
+                  <td>{{ a.cliente }}</td>
+                  <td class="cs-suave">{{ a.method }}</td>
+                  <td class="cs-num cs-ok">{{ a.amount | moneda }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p class="cs-intro">
+            Los abonos sí son dinero recibido. Las ventas de mostrador no generan ningún
+            registro de cobro en el sistema.
+          </p>
+        } @else {
+          <app-empty-state
+            icono="payments"
+            titulo="Sin abonos el día elegido"
+            detalle="Ningún cliente pagó ese día."
+          />
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  @if (r.porTipoVenta.length) {
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header><mat-card-title>Desglose por tipo</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <table class="cs-tabla">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th class="cs-num">Ventas</th>
+              <th class="cs-num">Total</th>
+              <th class="cs-num">Participación</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of r.porTipoVenta; track t.type) {
+              <tr>
+                <td><strong>{{ t.type }}</strong></td>
+                <td class="cs-num">{{ t.ventasCount | entero }}</td>
+                <td class="cs-num">{{ t.total | moneda }}</td>
+                <td class="cs-num">{{ t.porcentaje | porcentaje }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </mat-card-content>
+    </mat-card>
+  }
+}

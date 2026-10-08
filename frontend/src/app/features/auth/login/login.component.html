@@ -1,0 +1,79 @@
+<div class="login">
+  <div class="login__panel">
+    <form class="login__form" [formGroup]="form" (ngSubmit)="submitting()" novalidate>
+      <div class="login__marca">
+        <span class="login__logo">CS</span>
+        <h1>Chavez Store</h1>
+        <p>Control de stock, compras, ventas y ganancias</p>
+      </div>
+
+      @if (error()) {
+        <div class="login__error" role="alert">
+          <mat-icon inline>error</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <mat-form-field appearance="outline">
+        <mat-label>Usuario</mat-label>
+        <input
+          matInput
+          formControlName="username"
+          autocomplete="username"
+          autofocus
+          matIconSuffix
+        />
+        <mat-icon matSuffix>person</mat-icon>
+        @if (username.hasError('required') && username.touched) {
+          <mat-error>El usuario es obligatorio</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          formControlName="password"
+          type="password"
+          autocomplete="current-password"
+          matIconSuffix
+        />
+        <mat-icon matSuffix>lock</mat-icon>
+        @if (password.hasError('required') && password.touched) {
+          <mat-error>La contraseña es obligatoria</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        type="submit"
+        class="login__boton"
+        [disabled]="cargando()"
+      >
+        @if (cargando()) {
+          Ingresando…
+        } @else {
+          Ingresar
+        }
+      </button>
+
+      @if (cargando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </form>
+  </div>
+
+  <aside class="login__aside">
+    <h2>Sistema interno</h2>
+    <p>
+      El sistema documenta la salida de stock y la utilidad generada.
+      No emite comprobantes ni procesa pagos en mostrador: el dinero recibido
+      se registra únicamente como abono de clientes con crédito.
+    </p>
+    <ul>
+      <li>Stock siempre en unidad base, con lotes y salida FEFO</li>
+      <li>Costo promedio ponderado recalculado en cada compra</li>
+      <li>Márgen teórico frente a margen real por categoría</li>
+    </ul>
+  </aside>
+</div>

@@ -1,0 +1,141 @@
+<app-page-header
+  titulo="Mermas y pérdidas"
+  icono="delete_outline"
+  subtitulo="Cada merma es un movimiento real de stock que quema capital. Motivo por%: vencido, quiebre, error de toma o robo."
+/>
+
+<div class="cs-filtros">
+  <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+
+  <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+    <mat-label>Motivo</mat-label>
+    <mat-select [ngModel]="motivo()" (ngModelChange)="cambiarMotivo($event)">
+      <mat-option [value]="null">Todos</mat-option>
+      @for (m of motivos; track m) {
+        <mat-option [value]="m">{{ m }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (datos(); as r) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Costo perdido"
+      [valor]="r.totales.costoPerdido | moneda"
+      icono="money_off"
+      [tono]="r.totales.costoPerdido > 0 ? 'error' : 'ok'"
+    />
+    <app-kpi-card
+      etiqueta="Unidades perdidas"
+      [valor]="(r.totales.unidades | entero) + ''"
+      detalle="En unidad base"
+      icono="inventory"
+      tono="warn"
+    />
+    <app-kpi-card
+      etiqueta="Costo por unidad"
+      [valor]="costoPorUnidad() | moneda: 4"
+      detalle="Promedio de las mermas"
+      icono="calculate"
+      tono="neutro"
+    />
+    <app-kpi-card
+      etiqueta="Motivo principal"
+      [valor]="motivoPrincipal()?.motivo || '—'"
+      [detalle]="motivoPrincipal() ? (motivoPrincipal()!.porcentaje | porcentaje) + ' del total' : 'Sin mermas'"
+      icono="category"
+      tono="neutro"
+    />
+  </div>
+
+  @if (r.totales.unidades > 0) {
+    <div class="cs-dos-columnas">
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Costo perdido por motivo</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <div class="cs-grafica">
+            <canvas baseChart type="bar" [data]="datosGrafica()" [options]="opcionesGrafica"></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Desglose por motivo</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Motivo</th>
+                <th class="cs-num">Unidades</th>
+                <th class="cs-num">Costo perdido</th>
+                <th class="cs-num">Participación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of r.porMotivo; track m.motivo) {
+                <tr>
+                  <td><strong>{{ m.motivo }}</strong></td>
+                  <td class="cs-num">{{ m.unidades | entero }}</td>
+                  <td class="cs-num">{{ m.costoPerdido | moneda }}</td>
+                  <td class="cs-num">{{ m.porcentaje | porcentaje }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="cs-leyenda">
+            @for (m of r.porMotivo; track m.motivo) {
+              <div class="cs-leyenda__item">
+                <span class="cs-barra" [style.width.%]="m.porcentaje"></span>
+                <span>{{ m.motivo }} · {{ m.porcentaje | porcentaje }}</span>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header><mat-card-title>Mermas por producto</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-scroll-x">
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="cs-num">Unidades</th>
+                <th class="cs-num">Costo perdido</th>
+                <th class="cs-num">Merma %</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of r.porProducto; track p.productoId) {
+                <tr>
+                  <td>{{ p.nombre }}</td>
+                  <td class="cs-num">{{ p.unidades | entero }}</td>
+                  <td class="cs-num cs-error">{{ p.costoPerdido | moneda }}</td>
+                  <td class="cs-num" [class.cs-error]="p.mermaPct >= 5">
+                    {{ p.mermaPct | porcentaje }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card class="cs-panel">
+      <app-empty-state
+        icono="verified"
+        titulo="Sin mermas en el período"
+        detalle="No se registró ninguna pérdida de stock en estas fechas."
+      />
+    </mat-card>
+  }
+}

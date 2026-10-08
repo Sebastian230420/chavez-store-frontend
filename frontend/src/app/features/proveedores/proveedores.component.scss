@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  margin-bottom: 16px;
+}
+
+.cs-buscador {
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.cs-sub {
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.cs-filtros mat-form-field {
+  margin-bottom: -10px;
+}

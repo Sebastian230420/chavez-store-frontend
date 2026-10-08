@@ -1,0 +1,88 @@
+<mat-sidenav-container class="cs-shell">
+  <mat-sidenav
+    #sidenav
+    class="cs-shell__menu"
+    [mode]="modo()"
+    [opened]="menuAbierto()"
+  >
+    <div class="cs-brand">
+      <span class="cs-brand__logo">CS</span>
+      @if (verTextoMenu()) {
+        <div class="cs-brand__texto">
+          <strong>Chavez Store</strong>
+          <span>Control de inventario y ventas</span>
+        </div>
+      }
+    </div>
+
+    <mat-nav-list>
+      @for (grupo of grupos(); track grupo.titulo) {
+        <div class="cs-grupo">
+          @if (verTextoMenu()) {
+            <span class="cs-grupo__titulo">{{ grupo.titulo }}</span>
+          }
+          @for (item of grupo.items; track item.ruta) {
+            <a
+              mat-list-item
+              [routerLink]="item.ruta"
+              routerLinkActive="cs-activo"
+              [routerLinkActiveOptions]="{ exact: false }"
+              [matTooltip]="verTextoMenu() ? '' : item.etiqueta"
+              matTooltipPosition="right"
+              (click)="navegar()"
+            >
+              <mat-icon matListItemIcon>{{ item.icono }}</mat-icon>
+              @if (verTextoMenu()) {
+                <span matListItemTitle>{{ item.etiqueta }}</span>
+              }
+            </a>
+          }
+        </div>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="cs-shell__contenido">
+    <mat-toolbar class="cs-toolbar">
+      <button mat-icon-button type="button" (click)="alternarMenu()" aria-label="Alternar menú">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="cs-toolbar__titulo">Chavez Store</span>
+      <span class="cs-spacer"></span>
+
+      @if (nombreCompleto() || usuario()) {
+        <button mat-button type="button" [matMenuTriggerFor]="menuUsuario" class="cs-usuario">
+          <mat-icon>account_circle</mat-icon>
+          <span class="cs-usuario__nombre">{{ nombreCompleto() || usuario() }}</span>
+          <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+        </button>
+      }
+    </mat-toolbar>
+
+    <main class="cs-shell__pagina">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+
+<mat-menu #menuUsuario="matMenu">
+  <div class="cs-menu-usuario" (click)="$event.stopPropagation()">
+    <strong>{{ nombreCompleto() || usuario() }}</strong>
+    <span class="cs-suave">{{ usuario() }}</span>
+    <div class="cs-menu-usuario__roles">
+      @for (rol of roles(); track rol) {
+        <span class="cs-rol">{{ rol }}</span>
+      }
+    </div>
+  </div>
+  <mat-divider />
+  <button mat-menu-item type="button" (click)="abrirCambiarPassword()">
+    <mat-icon>key</mat-icon>
+    <span>Cambiar contraseña</span>
+  </button>
+  <button mat-menu-item type="button" (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    <span>Cerrar sesión</span>
+  </button>
+</mat-menu>

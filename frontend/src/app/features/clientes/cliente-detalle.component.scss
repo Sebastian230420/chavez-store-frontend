@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.cs-ficha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.cs-ficha__dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+  }
+
+  strong {
+    font-size: 13.5px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.cs-nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.cs-nota--info {
+  background: var(--cs-info-bg);
+  color: var(--cs-info);
+}

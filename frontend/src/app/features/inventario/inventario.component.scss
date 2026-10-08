@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  margin-bottom: 16px;
+}
+
+.cs-buscador {
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.cs-spacer {
+  flex: 1 1 auto;
+}
+
+.cs-conteo {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  background: #eef0f3;
+}
+
+.cs-warn {
+  color: var(--cs-warn);
+  background: var(--cs-warn-bg);
+}
+
+.cs-error {
+  color: var(--cs-error);
+  background: var(--cs-error-bg);
+}
+
+.cs-sub {
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.cs-enlace {
+  min-width: 0;
+  padding: 0 8px;
+  height: 26px;
+  font-size: 12px;
+  line-height: 26px;
+}
+
+.cs-filtros mat-form-field {
+  margin-bottom: -10px;
+}

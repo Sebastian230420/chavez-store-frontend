@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.cs-select {
+  width: 190px;
+}
+
+.cs-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.cs-grafica {
+  position: relative;
+  height: 260px;
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.cs-leyenda__item {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--cs-texto-suave);
+}
+
+.cs-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c0392b, #e07a5f);
+  min-width: 3px;
+}

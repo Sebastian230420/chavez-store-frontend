@@ -1,0 +1,319 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Registrar venta"
+    icono="point_of_sale"
+    subtitulo="Asiento interno de venta: documenta la salida de stock y la utilidad generada. No registra pagos ni emite comprobante."
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a ventas
+    </button>
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="cs-registro">
+    <!-- ══════════ Columna izquierda: datos + ítems ══════════ -->
+    <div class="cs-registro__principal">
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Datos de la venta</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="form" class="cs-datos">
+            <mat-radio-group formControlName="type" class="cs-tipo">
+              <mat-radio-button value="MOSTRADOR">
+                Mostrador <span class="cs-suave">(sin cliente identificado)</span>
+              </mat-radio-button>
+              <mat-radio-button value="CREDITO">
+                Crédito <span class="cs-suave">(genera deuda del cliente)</span>
+              </mat-radio-button>
+            </mat-radio-group>
+
+            <div class="cs-datos__fila">
+              @if (esCredito()) {
+                <mat-form-field appearance="outline" class="cs-datos__cliente">
+                  <mat-label>Cliente</mat-label>
+                  <mat-select formControlName="clienteId">
+                    <mat-option [value]="null">— Seleccionar —</mat-option>
+                    @for (cliente of clientes(); track cliente.id) {
+                      <mat-option
+                        [value]="cliente.id"
+                        [disabled]="cliente.creditLimit <= 0"
+                      >
+                        {{ cliente.fullName }} · {{ cliente.document }} ·
+                        {{ cliente.creditLimit <= 0 ? 'sin cupo' : 'cupo ' + (cliente.creditLimit | moneda) }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Obligatorio en venta a crédito (R-V-13)</mat-hint>
+                  @if (form.controls.clienteId.touched && form.controls.clienteId.hasError('required')) {
+                    <mat-error>Selecciona un cliente</mat-error>
+                  }
+                </mat-form-field>
+
+                @if (clienteSeleccionado(); as cliente) {
+                  <div class="cs-credito" [class.cs-credito--alerta]="clienteSinCupo() || excedeCredito()">
+                    <div class="cs-credito__dato">
+                      <span>Saldo actual</span>
+                      <strong>{{ cliente.saldoActual | moneda }}</strong>
+                    </div>
+                    <div class="cs-credito__dato">
+                      <span>Límite</span>
+                      <strong>{{ cliente.creditLimit | moneda }}</strong>
+                    </div>
+                    <div class="cs-credito__dato">
+                      <span>Disponible</span>
+                      <strong>{{ creditoDisponible() | moneda }}</strong>
+                    </div>
+                    @if (clienteSinCupo()) {
+                      <p class="cs-credito__aviso">
+                        <mat-icon inline>error</mat-icon>
+                        El cliente no tiene cupo de crédito (SAL_004).
+                      </p>
+                    } @else if (excedeCredito()) {
+                      <p class="cs-credito__aviso">
+                        <mat-icon inline>error</mat-icon>
+                        El total supera el cupo disponible (SAL_003).
+                      </p>
+                    }
+                  </div>
+                }
+              } @else {
+                <p class="cs-nota cs-nota--info">
+                  <mat-icon inline>info</mat-icon>
+                  En mostrador no se identifica al cliente final. El registro documenta
+                  qué se vendió y la utilidad, nada más.
+                </p>
+              }
+
+              <mat-form-field appearance="outline" class="cs-datos__fecha">
+                <mat-label>Fecha de venta</mat-label>
+                <input matInput type="date" formControlName="saleDate" [max]="fechaHoy" />
+                <mat-hint>Vacío = ahora. No se permite fecha futura.</mat-hint>
+              </mat-form-field>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Agregar ítem</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="cs-buscador">
+            <mat-label>Buscar producto por nombre, SKU o código de barras</mat-label>
+            <input
+              matInput
+              type="search"
+              [ngModel]="busqueda()"
+              (ngModelChange)="busqueda.set($event)"
+              autocomplete="off"
+            />
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+
+          @if (resultados().length) {
+            <ul class="cs-resultados">
+              @for (producto of resultados(); track producto.id) {
+                <li>
+                  <button type="button" class="cs-resultado" (click)="seleccionarProducto(producto)">
+                    <span class="cs-resultado__nombre">{{ producto.name }}</span>
+                    <span class="cs-resultado__meta cs-mono">{{ producto.sku }}</span>
+                    <span class="cs-resultado__stock">
+                      stock {{ producto.stock | entero }}
+                      @if (producto.stock <= producto.minStock) {
+                        <app-estado-chip valor="CRITICO" />
+                      }
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (productoSeleccionado(); as producto) {
+            <div class="cs-item cs-item--activo">
+              <div class="cs-item__info">
+                <strong>{{ producto.name }}</strong>
+                <span class="cs-suave cs-mono">
+                  {{ producto.sku }} · stock {{ producto.stock | entero }} ·
+                  mín. {{ producto.minStock | entero }} · costo {{ producto.costAvg | moneda: 4 }}
+                </span>
+              </div>
+
+              <mat-form-field appearance="outline" class="cs-item__presentacion">
+                <mat-label>Presentación</mat-label>
+                <mat-select
+                  [ngModel]="presentacionSeleccionadaId()"
+                  (ngModelChange)="presentacionSeleccionadaId.set($event)"
+                >
+                  @for (p of presentacionesVenta(); track p.id) {
+                    <mat-option [value]="p.id">
+                      {{ p.name }} · {{ p.unitsBase }} u · {{ p.price | moneda }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="cs-item__qty">
+                <mat-label>Cantidad</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="1"
+                  [ngModel]="qty()"
+                  (ngModelChange)="qty.set(+$event)"
+                />
+              </mat-form-field>
+
+              <div class="cs-item__conversion">
+                <span>Descuenta</span>
+                <strong>{{ unitsBaseActual() | entero }} u base</strong>
+                <small class="cs-suave">
+                  {{ presentacionSeleccionada()?.price ? ((presentacionSeleccionada()!.price * qty()) | moneda) : '' }}
+                </small>
+                @if (excedeStock()) {
+                  <small class="cs-error">
+                    Excede el stock ({{ stockDisponible() | entero }} u)
+                  </small>
+                }
+              </div>
+
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="excedeStock() || !presentacionSeleccionada()"
+                (click)="agregarLinea()"
+              >
+                <mat-icon>add_shopping_cart</mat-icon>
+                Agregar
+              </button>
+              <button mat-icon-button type="button" matTooltip="Cambiar producto" (click)="limpiarProducto()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+
+          <h3 class="cs-titulo-seccion">Detalle ({{ lineas().length }})</h3>
+
+          @if (lineas().length) {
+            <div class="cs-scroll-x">
+              <table class="cs-tabla">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Presentación</th>
+                    <th class="cs-num">Cantidad</th>
+                    <th class="cs-num">Unidades base</th>
+                    <th class="cs-num">Subtotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (linea of lineas(); track linea.presentacion.id + linea.producto.id; let i = $index) {
+                    <tr [class.cs-error-fila]="linea.sinStock">
+                      <td>
+                        <strong>{{ linea.producto.name }}</strong>
+                        <div class="cs-suave cs-sub cs-mono">{{ linea.producto.sku }}</div>
+                      </td>
+                      <td>
+                        {{ linea.presentacion.name }}
+                        <div class="cs-suave cs-sub">{{ linea.presentacion.unitsBase }} u base</div>
+                      </td>
+                      <td class="cs-num">
+                        <div class="cs-qty">
+                          <button mat-icon-button type="button" (click)="cambiarQty(i, -1)">
+                            <mat-icon>remove</mat-icon>
+                          </button>
+                          <span>{{ linea.qty }}</span>
+                          <button mat-icon-button type="button" (click)="cambiarQty(i, 1)">
+                            <mat-icon>add</mat-icon>
+                          </button>
+                        </div>
+                      </td>
+                      <td class="cs-num">
+                        {{ linea.unitsBase | entero }}
+                        @if (linea.sinStock) {
+                          <div class="cs-error cs-sub">sin stock</div>
+                        }
+                      </td>
+                      <td class="cs-num">{{ linea.subtotal | moneda }}</td>
+                      <td class="mat-column-actions">
+                        <button mat-icon-button type="button" (click)="quitarLinea(i)">
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="cs-vacio">Agrega al menos un ítem para registrar la venta (R-V-01).</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- ══════════ Columna derecha: resumen ══════════ -->
+    <aside class="cs-registro__resumen">
+      <mat-card class="cs-panel cs-resumen">
+        <mat-card-header><mat-card-title>Resumen</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <div class="cs-resumen__linea">
+            <span>Ítems</span>
+            <strong>{{ lineas().length }}</strong>
+          </div>
+          <div class="cs-resumen__linea">
+            <span>Unidades base</span>
+            <strong>{{ unidadesBaseTotales() | entero }}</strong>
+          </div>
+
+          <mat-divider />
+
+          <div class="cs-resumen__linea cs-resumen__total">
+            <span>Subtotal estimado</span>
+            <strong>{{ subtotalInformativo() | moneda }}</strong>
+          </div>
+          <div class="cs-resumen__linea">
+            <span>Costo estimado</span>
+            <strong>{{ costoEstimado() | moneda }}</strong>
+          </div>
+          <div class="cs-resumen__linea cs-resumen__utilidad">
+            <span>Utilidad estimada</span>
+            <strong [class.cs-error]="utilidadEstimada() < 0">{{ utilidadEstimada() | moneda }}</strong>
+          </div>
+
+          <p class="cs-nota">
+            <mat-icon inline>calculate</mat-icon>
+            Sin impuestos ni descuentos: <code>total = subtotal</code>. El importe definitivo
+            y la utilidad los calcula el servidor con el costo congelado en el momento
+            del registro (R-V-03, R-V-15).
+          </p>
+
+          @if (error()) {
+            <p class="cs-nota cs-nota--error" role="alert">
+              <mat-icon inline>error</mat-icon>
+              {{ error() }}
+            </p>
+          }
+
+          <button
+            mat-flat-button
+            type="button"
+            class="cs-resumen__boton"
+            [disabled]="!puedeRegistrar()"
+            (click)="registrar()"
+          >
+            <mat-icon>check_circle</mat-icon>
+            Registrar venta
+          </button>
+
+          @if (guardando()) {
+            <mat-progress-bar mode="indeterminate" />
+          }
+        </mat-card-content>
+      </mat-card>
+    </aside>
+  </div>
+</div>

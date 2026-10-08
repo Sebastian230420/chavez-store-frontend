@@ -1,0 +1,188 @@
+<h2 mat-dialog-title>{{ editando() ? 'Editar producto' : 'Nuevo producto' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="cs-form" novalidate>
+    <h3 class="cs-seccion">Identificación</h3>
+
+    <div class="cs-grid-2">
+      <mat-form-field appearance="outline">
+        <mat-label>SKU</mat-label>
+        <input
+          matInput
+          formControlName="sku"
+          maxlength="50"
+          [readonly]="editando()"
+        />
+        <mat-hint>
+          {{ editando() ? 'El SKU no se modifica' : 'Se autogenera si lo dejas vacío' }}
+        </mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Código de barras</mat-label>
+        <input matInput formControlName="barcode" maxlength="50" inputmode="numeric" />
+        <mat-hint>Opcional. Permite escanear al registrar venta</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="name" maxlength="150" />
+      <mat-icon matSuffix>inventory_2</mat-icon>
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <mat-error>Mínimo 3 caracteres</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <div class="cs-grid-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Categoría</mat-label>
+        <mat-select formControlName="categoriaId">
+          <mat-option [value]="null">— Sin categoría —</mat-option>
+          @for (categoria of categorias(); track categoria.id) {
+            <mat-option [value]="categoria.id">{{ categoria.name }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.categoriaId.hasError('required')) {
+          <mat-error>La categoría es obligatoria</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Marca</mat-label>
+        <mat-select formControlName="marcaId">
+          <mat-option [value]="null">— Sin marca —</mat-option>
+          @for (marca of marcas(); track marca.id) {
+            <mat-option [value]="marca.id">{{ marca.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (editando()) {
+      <p class="cs-nota">
+        <mat-icon inline>lock</mat-icon>
+        La categoría no se modifica: cambiarla rompería los reportes históricos (R-C-08).
+        El costo promedio tampoco es editable, solo lo recalcula el sistema (R-C-09).
+      </p>
+    }
+
+    <h3 class="cs-seccion">Unidad base y stock</h3>
+
+    <div class="cs-grid-3">
+      <mat-form-field appearance="outline">
+        <mat-label>Unidad base</mat-label>
+        <mat-select formControlName="baseUnit">
+          @for (unidad of unidades; track unidad) {
+            <mat-option [value]="unidad">{{ unidad }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>El stock siempre se lleva aquí</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contenido (ml)</mat-label>
+        <input matInput formControlName="contentMl" type="number" min="0" />
+      </mat-form-field>
+
+      <div></div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Stock mínimo</mat-label>
+        <input matInput formControlName="minStock" type="number" min="0" />
+        <mat-hint>Genera alerta de stock crítico</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Stock máximo</mat-label>
+        <input matInput formControlName="maxStock" type="number" min="0" />
+      </mat-form-field>
+
+      <div class="cs-campo-switch">
+        <mat-slide-toggle formControlName="active">Activo</mat-slide-toggle>
+      </div>
+    </div>
+
+    <h3 class="cs-seccion">
+      Presentaciones
+      <span class="cs-suave cs-seccion__detalle">
+        Cada conversión apunta a la unidad base. El precio vive solo en las de venta.
+      </span>
+    </h3>
+
+    <div formArrayName="presentaciones" class="cs-presentaciones">
+      @for (grupo of presentaciones.controls; track grupo; let i = $index) {
+        <div class="cs-presentacion" [formGroupName]="i">
+          <mat-form-field appearance="outline" class="cs-presentacion__nombre">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" placeholder="Pack x6" maxlength="60" />
+            @if (grupo.get('name')?.touched && grupo.get('name')?.invalid) {
+              <mat-error>Obligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="type">
+              @for (tipo of tiposPresentacion; track tipo) {
+                <mat-option [value]="tipo">{{ tipo }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Unidades base</mat-label>
+            <input matInput formControlName="unitsBase" type="number" min="1" />
+            @if (grupo.get('unitsBase')?.touched && grupo.get('unitsBase')?.invalid) {
+              <mat-error>Debe ser mayor a 0</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Precio (S/)</mat-label>
+            <input matInput formControlName="price" type="number" min="0" step="0.01" [readonly]="!esVenta(grupo)" />
+            <mat-hint>{{ esVenta(grupo) ? 'Obligatorio en venta' : 'No aplica' }}</mat-hint>
+            @if (esVenta(grupo) && (grupo.touched || grupo.dirty) && !grupo.get('price')?.value) {
+              <mat-error>El precio es obligatorio en VENTA</mat-error>
+            }
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Quitar presentación"
+            [disabled]="presentaciones.length === 1"
+            (click)="quitarPresentacion(i)"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="cs-acciones">
+      <button mat-stroked-button type="button" (click)="agregarPresentacion()">
+        <mat-icon>add</mat-icon>
+        Agregar presentación
+      </button>
+    </div>
+
+    @if (sinPresentacionVenta()) {
+      <p class="cs-nota cs-nota--error">
+        <mat-icon inline>error</mat-icon>
+        El producto debe tener al menos una presentación de tipo VENTA (R-C-04).
+      </p>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">Cancelar</button>
+  <button mat-flat-button type="button" [disabled]="cargando()" (click)="guardar()">
+    {{ editando() ? 'Guardar cambios' : 'Crear producto' }}
+  </button>
+</mat-dialog-actions>

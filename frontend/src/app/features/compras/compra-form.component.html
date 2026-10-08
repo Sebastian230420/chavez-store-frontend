@@ -1,0 +1,167 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Registrar compra"
+    icono="local_shipping"
+    subtitulo="Registrar la compra no suma stock. Al recibirla se crean los lotes, se suma el stock y se recalcula el costo promedio."
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a compras
+    </button>
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-card class="cs-panel">
+    <mat-card-header><mat-card-title>Datos de la compra</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" class="cs-datos" novalidate>
+        <div class="cs-grid-3">
+          <mat-form-field appearance="outline">
+            <mat-label>Proveedor</mat-label>
+            <mat-select formControlName="proveedorId">
+              <mat-option [value]="null">— Seleccionar —</mat-option>
+              @for (proveedor of proveedoresActivos(); track proveedor.id) {
+                <mat-option [value]="proveedor.id">{{ proveedor.name }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.proveedorId.touched && form.controls.proveedorId.invalid) {
+              <mat-error>El proveedor es obligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Documento del proveedor</mat-label>
+            <input matInput formControlName="document" maxlength="20" />
+            <mat-hint>Vacío = autogenerado (R-CO-06)</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha de emisión</mat-label>
+            <input matInput type="date" formControlName="issueDate" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Notas</mat-label>
+          <input matInput formControlName="notes" maxlength="500" />
+        </mat-form-field>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cs-panel cs-mt">
+    <mat-card-header>
+      <mat-card-title>Ítems de la compra</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form">
+        <div formArrayName="detalles" class="cs-lineas">
+          @for (grupo of detalles.controls; track grupo; let i = $index) {
+            <div class="cs-linea" [formGroupName]="i">
+              <div class="cs-linea__indice">{{ i + 1 }}</div>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Producto</mat-label>
+                <mat-select formControlName="productoId" (selectionChange)="productoCambiado(grupo)">
+                  @for (producto of productos(); track producto.id) {
+                    <mat-option [value]="producto.id">
+                      {{ producto.name }} ({{ producto.sku }})
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Presentación de compra</mat-label>
+                <mat-select formControlName="presentacionId" (selectionChange)="presentacionCambiada(grupo)">
+                  <mat-option [value]="null">— Seleccionar —</mat-option>
+                  @for (p of presentacionesCompra(grupo.controls.productoId.value); track p.id) {
+                    <mat-option [value]="p.id">{{ p.name }} · {{ p.unitsBase }} u base</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Cantidad</mat-label>
+                <input matInput formControlName="qty" type="number" min="1" />
+                <mat-hint>{{ unidadesDe(grupo) }} u base</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Costo unitario</mat-label>
+                <input matInput formControlName="unitCost" type="number" min="0.0001" step="0.0001" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Vencimiento del lote</mat-label>
+                <input matInput type="date" formControlName="expiryDate" />
+                <mat-hint>Opcional</mat-hint>
+              </mat-form-field>
+
+              <div class="cs-linea__subtotal">
+                <span>Subtotal</span>
+                <strong>{{ subtotalDe(grupo) | moneda }}</strong>
+              </div>
+
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Quitar ítem"
+                [disabled]="detalles.length === 1"
+                (click)="quitarLinea(i)"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </form>
+
+      <div class="cs-acciones">
+        <button mat-stroked-button type="button" (click)="agregarLinea()">
+          <mat-icon>add</mat-icon>
+          Agregar ítem
+        </button>
+      </div>
+
+      <p class="cs-nota">
+        <mat-icon inline>info</mat-icon>
+        El costo unitario es por <strong>unidad base</strong>: si compras 10 cajas x24 a
+        S/ 3.4167, el costo del ítem es 3.4167 y el ingreso será de 240 unidades.
+        El servidor recalcula el costo promedio ponderado al recibir la compra.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cs-panel cs-mt">
+    <mat-card-content>
+      <div class="cs-total">
+        <span>Total estimado</span>
+        <strong>{{ totalInformativo() | moneda }}</strong>
+      </div>
+      <p class="cs-suave cs-ayuda">
+        Cifra informativa: el total definitivo lo calcula el servidor (R-CO-07).
+      </p>
+
+      <div class="cs-botones">
+        <button mat-button type="button" (click)="volver()">Cancelar</button>
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="!puedeGuardar()"
+          (click)="guardar()"
+        >
+          <mat-icon>save</mat-icon>
+          Registrar compra
+        </button>
+      </div>
+
+      @if (guardando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

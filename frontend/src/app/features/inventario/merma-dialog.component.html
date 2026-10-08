@@ -1,0 +1,101 @@
+<h2 mat-dialog-title>Registrar merma</h2>
+<mat-dialog-content>
+  <p class="cs-sub">
+    <strong>{{ producto.name }}</strong> · {{ producto.sku }} ·
+    stock {{ producto.stock | entero }} · costo {{ producto.costAvg | moneda: 4 }}
+  </p>
+
+  <form [formGroup]="form" class="cs-form" novalidate>
+    <div class="cs-grid-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Cantidad en unidad base</mat-label>
+        <input matInput formControlName="qty" type="number" min="1" />
+        <mat-hint>Máximo {{ tope() | entero }}</mat-hint>
+        @if (form.controls.qty.touched && form.controls.qty.invalid) {
+          <mat-error>La cantidad debe ser mayor a 0</mat-error>
+        }
+        @if (excedeLotes()) {
+          <mat-error>No hay lotes suficientes (STK_002)</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Motivo</mat-label>
+        <mat-select formControlName="reason">
+          <mat-option [value]="null">— Seleccionar —</mat-option>
+          @for (motivo of motivos; track motivo) {
+            <mat-option [value]="motivo">{{ motivo }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Obligatorio (R-I-07)</mat-hint>
+        @if (form.controls.reason.touched && form.controls.reason.invalid) {
+          <mat-error>Selecciona un motivo</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Lote a descontar</mat-label>
+      <mat-select formControlName="lotId">
+        <mat-option [value]="null">Automático (FEFO: el que vence antes)</mat-option>
+        @for (lote of lotesConExistencia(); track lote.lotId) {
+          <mat-option [value]="lote.lotId">
+            {{ lote.lotCode }} · {{ lote.qtyRemaining | entero }} u ·
+            {{ lote.expiryDate ? (lote.expiryDate | fecha) : 'sin vencimiento' }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (cargandoLotes()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </mat-form-field>
+  </form>
+
+  <div class="cs-resumen">
+    <div class="cs-resumen__dato">
+      <span>Stock resultante</span>
+      <strong [class.cs-error]="producto.stock - qty() < 0">
+        {{ (producto.stock - qty()) | entero }}
+      </strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Costo perdido</span>
+      <strong class="cs-error">{{ costoPerdido() | moneda }}</strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Lotes con existencia</span>
+      <strong>{{ lotesConExistencia().length }}</strong>
+    </div>
+  </div>
+
+  @if (loteSeleccionado(); as lote) {
+    <p class="cs-nota cs-nota--warn">
+      <mat-icon inline>warning</mat-icon>
+      El descuento quedará solo en {{ lote.lotCode }}
+      ({{ lote.qtyRemaining | entero }} u disponibles).
+    </p>
+  }
+
+  <p class="cs-nota">
+    <mat-icon inline>info</mat-icon>
+    La merma es un movimiento real de stock: descuenta, genera el movimiento
+    <code>MERMA</code> y queda en el kardex para siempre. No se puede borrar.
+  </p>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">Cancelar</button>
+  <button
+    mat-flat-button
+    color="warn"
+    type="button"
+    [disabled]="cargando() || excedeLotes()"
+    (click)="guardar()"
+  >
+    Registrar merma
+  </button>
+</mat-dialog-actions>

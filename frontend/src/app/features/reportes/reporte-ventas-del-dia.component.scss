@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+
+.cs-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.cs-fecha {
+  width: 190px;
+}
+
+.cs-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.cs-dos-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-intro {
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 12px 0 0;
+  color: var(--cs-texto-suave);
+}

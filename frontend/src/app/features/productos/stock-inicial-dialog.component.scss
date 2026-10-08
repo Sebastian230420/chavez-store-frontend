@@ -1,0 +1,92 @@
+.cs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.cs-sub {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.cs-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.cs-lotes-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 6px;
+  flex-wrap: wrap;
+
+  h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+
+    span {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
+  }
+}
+
+.cs-validacion {
+  font-size: 12.5px;
+  color: var(--cs-ok);
+
+  &.cs-validacion--error {
+    color: var(--cs-error);
+    font-weight: 500;
+  }
+}
+
+.cs-lotes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-lote {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr) 48px;
+  gap: 0 10px;
+  align-items: start;
+  padding: 6px 8px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.cs-acciones {
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.cs-nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--cs-error);
+}
+
+@media (max-width: 720px) {
+  .cs-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-lote {
+    grid-template-columns: 1fr 1fr 48px;
+  }
+}

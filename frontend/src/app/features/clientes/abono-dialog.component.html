@@ -1,0 +1,81 @@
+<h2 mat-dialog-title>Registrar abono</h2>
+<mat-dialog-content>
+  <p class="cs-sub">
+    <strong>{{ cliente.fullName }}</strong> · {{ cliente.document }}
+  </p>
+
+  <div class="cs-resumen">
+    <div class="cs-resumen__dato">
+      <span>Saldo pendiente</span>
+      <strong>{{ saldo() | moneda }}</strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Límite de crédito</span>
+      <strong>{{ cliente.creditLimit | moneda }}</strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Disponible</span>
+      <strong>{{ (cliente.creditLimit - saldo()) | moneda }}</strong>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="cs-form" novalidate>
+    <div class="cs-grid-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Monto</mat-label>
+        <input matInput formControlName="amount" type="number" min="0.01" step="0.01" />
+        <span matTextPrefix>S/&nbsp;</span>
+        <mat-hint>Máximo {{ saldoVentaSeleccionada() | moneda }}</mat-hint>
+        @if (form.controls.amount.touched && form.controls.amount.invalid) {
+          <mat-error>El monto debe ser mayor a 0</mat-error>
+        }
+        @if (excedeSaldo()) {
+          <mat-error>El abono supera la deuda pendiente (SAL_005)</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Método</mat-label>
+        <mat-select formControlName="method">
+          @for (metodo of metodos; track metodo) {
+            <mat-option [value]="metodo">{{ metodo }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Aplicar a una venta específica (opcional)</mat-label>
+      <mat-select formControlName="appliedSaleId">
+        <mat-option [value]="null">Abono a cuenta general</mat-option>
+        @for (venta of ventas(); track venta.id) {
+          <mat-option [value]="venta.id">
+            {{ venta.document }} · {{ venta.fecha | fecha }} · {{ venta.total | moneda }}
+          </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Si lo dejas vacío, reduce el saldo total del cliente</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nota</mat-label>
+      <input matInput formControlName="notes" maxlength="255" />
+    </mat-form-field>
+  </form>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">Cancelar</button>
+  <button
+    mat-flat-button
+    type="button"
+    [disabled]="cargando() || excedeSaldo()"
+    (click)="guardar()"
+  >
+    Registrar abono
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,109 @@
+<app-page-header
+  titulo="Ventas por hora"
+  icono="schedule"
+  subtitulo="Demanda por franja horaria. Sirve para ajustar personal y reposición de stock."
+/>
+
+<div class="cs-filtros">
+  <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+</div>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (reporte(); as r) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Ventas del período"
+      [valor]="(totalVentas() | entero) + ''"
+      [detalle]="(totalIngresos() | moneda) + ' de ingresos'"
+      icono="receipt_long"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Ticket promedio"
+      [valor]="ticketPromedioGeneral() | moneda"
+      detalle="Por venta"
+      icono="local_activity"
+      tono="neutro"
+    />
+    <app-kpi-card
+      etiqueta="Hora pico"
+      [valor]="etiquetaHora(horaPico())"
+      [detalle]="delPico() ? (delPico()!.ventasCount | entero) + ' ventas · ' + (delPico()!.ingresos | moneda) : ''"
+      icono="trending_up"
+      tono="warn"
+    />
+    <app-kpi-card
+      etiqueta="Hora más baja"
+      [valor]="etiquetaHora(horaBaja())"
+      [detalle]="deLaBaja() ? (deLaBaja()!.ventasCount | entero) + ' ventas' : ''"
+      icono="trending_down"
+      tono="neutro"
+    />
+  </div>
+
+  <mat-card class="cs-panel">
+    <mat-card-header>
+      <mat-card-title>Ventas e ingresos por hora</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (r.porHora.length) {
+        <div class="cs-grafica">
+          <canvas baseChart type="bar" [data]="datosGrafica()" [options]="opcionesGrafica"></canvas>
+        </div>
+        <p class="cs-leyenda">
+          <span class="cs-marca cs-marca--pico"></span>
+          La barra en rojo marca la hora pico.
+        </p>
+      } @else {
+        <app-empty-state
+          icono="schedule"
+          titulo="Sin ventas en el período"
+          detalle="Amplía el rango de fechas."
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+
+  @if (r.porHora.length) {
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header><mat-card-title>Detalle por franja</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-scroll-x">
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th class="cs-num">Ventas</th>
+                <th class="cs-num">Ingresos</th>
+                <th class="cs-num">Ticket promedio</th>
+                <th>Participación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of r.porHora; track h.hora) {
+                <tr [class.cs-fila-pico]="h.hora === horaPico()">
+                  <td>
+                    <strong>{{ etiquetaHora(h.hora) }}</strong>
+                    @if (h.hora === horaPico()) {
+                      <app-estado-chip valor="PICO" tipo="warn" />
+                    }
+                    @if (h.hora === horaBaja()) {
+                      <app-estado-chip valor="MÍNIMA" tipo="neutro" />
+                    }
+                  </td>
+                  <td class="cs-num">{{ h.ventasCount | entero }}</td>
+                  <td class="cs-num">{{ h.ingresos | moneda }}</td>
+                  <td class="cs-num">{{ h.ticketPromedio | moneda }}</td>
+                  <td class="cs-num">{{ porcentajeDelTotal(h.ventasCount) | porcentaje }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+}

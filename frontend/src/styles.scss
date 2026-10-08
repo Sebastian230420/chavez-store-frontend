@@ -1,0 +1,256 @@
+@use '@angular/material' as mat;
+
+/* ═══════════════════════════════════════════════════════════
+   Tema Material 3
+   ═══════════════════════════════════════════════════════════ */
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$violet-palette,
+        theme-type: light,
+      ),
+      typography: (
+        plain-family: 'Roboto, sans-serif',
+        brand-family: 'Roboto, sans-serif',
+        bold-weight: 500,
+        medium-weight: 500,
+        regular-weight: 300,
+      ),
+      density: 0,
+    )
+  );
+
+  /* Tokens propios del layout */
+  --cs-alto-barra: 64px;
+  --cs-ancho-menu: 248px;
+  --cs-superficie: #f5f6f8;
+  --cs-borde: #e2e5ea;
+  --cs-texto-suave: #6b7280;
+
+  /* Semánticos de negocio */
+  --cs-ok: #1f8a4c;
+  --cs-ok-bg: #e6f4ec;
+  --cs-warn: #b26a00;
+  --cs-warn-bg: #fdf3e0;
+  --cs-error: #c0392b;
+  --cs-error-bg: #fbeae8;
+  --cs-info: #1c6fb5;
+  --cs-info-bg: #e7f1fb;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--cs-superficie);
+  color: #1f2430;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Utilidades globales
+   ═══════════════════════════════════════════════════════════ */
+.cs-pagina {
+  padding: 20px 24px 32px;
+  max-width: 1600px;
+}
+
+.cs-mono {
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-size: 0.86em;
+}
+
+.cs-suave {
+  color: var(--cs-texto-suave);
+}
+
+.cs-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-error {
+  color: var(--cs-error);
+}
+
+.cs-ok {
+  color: var(--cs-ok);
+}
+
+.cs-apagado {
+  opacity: 0.55;
+}
+
+.cs-toolbar-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.cs-acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cs-scroll-x {
+  overflow-x: auto;
+}
+
+.cs-vacio {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--cs-texto-suave);
+}
+
+/* Tablas Material: cabecera compacta y sticky */
+table.mat-mdc-table {
+  width: 100%;
+}
+
+.mat-mdc-header-row {
+  background: #fafbfc;
+}
+
+.mat-column-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Snackbars con ancho cómodo para mensajes de error del backend */
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  max-width: 640px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Bloques reutilizados por casi todas las pantallas
+   ═══════════════════════════════════════════════════════════ */
+.cs-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+
+  th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+    border-bottom: 1px solid var(--cs-borde);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover td {
+    background: #fafbfc;
+  }
+
+  th.cs-num,
+  td.cs-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.cs-panel {
+  border: 1px solid var(--cs-borde);
+  border-radius: 12px;
+  box-shadow: none !important;
+
+  mat-card-header {
+    padding: 14px 16px 8px;
+  }
+
+  mat-card-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  mat-card-content {
+    padding: 4px 16px 16px;
+  }
+}
+
+.cs-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.cs-kpis--planas {
+  margin-bottom: 0;
+}
+
+.cs-dos-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Snackbars
+   ═══════════════════════════════════════════════════════════ */
+.cs-snack {
+  --cs-snack-fg: #fff;
+
+  .mdc-snackbar__surface {
+    background: #33383f;
+    color: var(--cs-snack-fg);
+  }
+}
+
+.cs-snack--exito .mdc-snackbar__surface {
+  background: var(--cs-ok);
+}
+
+.cs-snack--error .mdc-snackbar__surface {
+  background: var(--cs-error);
+}
+
+.cs-snack--info .mdc-snackbar__surface {
+  background: var(--cs-info);
+}
+
+.cs-snack--aviso .mdc-snackbar__surface {
+  background: var(--cs-warn);
+}
+
+/* Impresión de reportes */
+@media print {
+  .cs-no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+}

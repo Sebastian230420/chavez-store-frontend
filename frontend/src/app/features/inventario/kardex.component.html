@@ -1,0 +1,168 @@
+<div class="cs-pagina">
+  <app-page-header
+    [titulo]="'Kardex · ' + (producto()?.nombre || 'Producto')"
+    icono="receipt_long"
+    subtitulo="Historial completo de movimientos. Los movimientos no se borran: una anulación genera un movimiento inverso."
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver
+    </button>
+  </app-page-header>
+
+  @if (producto(); as p) {
+    <div class="cs-resumen">
+      <div class="cs-resumen__dato">
+        <span>Stock actual</span>
+        <strong>{{ p.stock | entero }}</strong>
+      </div>
+      <div class="cs-resumen__dato">
+        <span>SKU</span>
+        <strong class="cs-mono">{{ p.sku }}</strong>
+      </div>
+      @if (stock(); as s) {
+        <div class="cs-resumen__dato">
+          <span>Mínimo</span>
+          <strong>{{ s.stockMin | entero }}</strong>
+        </div>
+        <div class="cs-resumen__dato">
+          <span>Lotes con existencia</span>
+          <strong>{{ s.lotes.length }}</strong>
+        </div>
+      }
+    </div>
+
+    @if (stock(); as s) {
+      @if (s.lotes.length) {
+        <mat-card class="cs-panel cs-mt">
+          <mat-card-header>
+            <mat-card-title>Lotes (orden FEFO: sale primero el que vence antes)</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table class="cs-tabla">
+              <thead>
+                <tr>
+                  <th>Lote</th>
+                  <th>Vencimiento</th>
+                  <th class="cs-num">Días restantes</th>
+                  <th class="cs-num">Existencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (lote of s.lotes; track lote.lotId) {
+                  <tr>
+                    <td class="cs-mono">{{ lote.lotCode }}</td>
+                    <td>{{ lote.expiryDate | fecha }}</td>
+                    <td class="cs-num" [class.cs-error]="(lote.diasRestantes ?? 99) <= 7">
+                      {{ lote.diasRestantes === null || lote.diasRestantes === undefined ? '—' : (lote.diasRestantes | entero) }}
+                    </td>
+                    <td class="cs-num">{{ lote.qtyRemaining | entero }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  }
+
+  <mat-card class="cs-panel cs-mt">
+    <mat-card-header><mat-card-title>Movimientos</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+
+      @if (cargando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      @if (movimientos().length) {
+        <div class="cs-scroll-x">
+          <table mat-table [dataSource]="movimientos()" class="cs-tabla">
+            <ng-container matColumnDef="createdAt">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let fila">
+                {{ fila.createdAt | fecha }}
+                <div class="cs-sub cs-suave">{{ fila.createdAt | fecha: 'hora' }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let fila">
+                <app-estado-chip [valor]="fila.type" [tipo]="tipoMovimiento(fila.type)" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="lote">
+              <th mat-header-cell *matHeaderCellDef>Lote</th>
+              <td mat-cell *matCellDef="let fila" class="cs-mono cs-suave">
+                {{ fila.lote?.lotCode || '—' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="qty">
+              <th mat-header-cell *matHeaderCellDef class="cs-num">Cantidad</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                <strong [class.cs-ok]="fila.qty > 0" [class.cs-error]="fila.qty < 0">
+                  {{ fila.qty > 0 ? '+' : '' }}{{ fila.qty | entero }}
+                </strong>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="unitCost">
+              <th mat-header-cell *matHeaderCellDef class="cs-num">Costo</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                {{ fila.unitCost | moneda: 4 }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="stockResultante">
+              <th mat-header-cell *matHeaderCellDef class="cs-num">Stock resultante</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.stockResultante | entero }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="referencia">
+              <th mat-header-cell *matHeaderCellDef>Referencia</th>
+              <td mat-cell *matCellDef="let fila" class="cs-suave cs-mono cs-pequeno">
+                @if (fila.refTable) {
+                  {{ fila.refTable }}#{{ fila.refId }}
+                } @else {
+                  —
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="usuario">
+              <th mat-header-cell *matHeaderCellDef>Usuario</th>
+              <td mat-cell *matCellDef="let fila" class="cs-suave">{{ fila.usuario }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="reason">
+              <th mat-header-cell *matHeaderCellDef>Motivo</th>
+              <td mat-cell *matCellDef="let fila" class="cs-suave">{{ fila.reason || '—' }}</td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+            <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [length]="total()"
+          [pageIndex]="pagina()"
+          [pageSize]="tamano()"
+          [pageSizeOptions]="[20, 50, 100]"
+          (page)="cambiarPagina($event)"
+          showFirstLastButtons
+        />
+      } @else if (!cargando()) {
+        <app-empty-state
+          icono="receipt_long"
+          titulo="Sin movimientos en el período"
+          detalle="Amplía el rango de fechas o revisa el producto."
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

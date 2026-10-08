@@ -1,0 +1,86 @@
+<h2 mat-dialog-title>Ajuste manual de stock</h2>
+<mat-dialog-content>
+  <p class="cs-sub">
+    <strong>{{ producto.name }}</strong> · {{ producto.sku }}
+  </p>
+
+  <form [formGroup]="form" class="cs-form" novalidate>
+    <div class="cs-conteo">
+      <mat-form-field appearance="outline">
+        <mat-label>Conteo físico</mat-label>
+        <input matInput type="number" min="0" #conteo (input)="setConteoFisico(+conteo.value)" />
+        <mat-hint>Conteo real en unidad base</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Diferencia a registrar</mat-label>
+        <input matInput formControlName="unitsBase" type="number" />
+        <span matTextPrefix>{{ delta() > 0 ? '+' : delta() < 0 ? '−' : '' }}&nbsp;</span>
+        @if (sinCambio()) {
+          <mat-error>Ingresa una diferencia distinta de cero</mat-error>
+        }
+        @if (negativo()) {
+          <mat-error>El resultado no puede ser negativo (R-I-01)</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Motivo</mat-label>
+      <textarea
+        matInput
+        formControlName="reason"
+        rows="2"
+        maxlength="255"
+        placeholder="Ej: corrección por conteo físico de inventario"
+      ></textarea>
+      <mat-hint>Obligatorio, mínimo 10 caracteres (R-I-06)</mat-hint>
+      @if (form.controls.reason.touched && form.controls.reason.invalid) {
+        <mat-error>El motivo es obligatorio</mat-error>
+      }
+    </mat-form-field>
+  </form>
+
+  <div class="cs-resumen">
+    <div class="cs-resumen__dato">
+      <span>Stock en sistema</span>
+      <strong>{{ producto.stock | entero }}</strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Ajuste</span>
+      <strong [class.cs-ok]="delta() > 0" [class.cs-error]="delta() < 0">
+        {{ delta() > 0 ? '+' : '' }}{{ delta() | entero }}
+      </strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Stock resultante</span>
+      <strong [class.cs-error]="negativo()">{{ stockResultante() | entero }}</strong>
+    </div>
+    <div class="cs-resumen__dato">
+      <span>Movimiento</span>
+      <strong class="cs-mono cs-pequeno">{{ tipoMovimiento() }}</strong>
+    </div>
+  </div>
+
+  <p class="cs-nota">
+    <mat-icon inline>info</mat-icon>
+    El ajuste queda en el kardex como movimiento con tu usuario y este motivo.
+    No se borra: si te equivocaste, se corrige con otro ajuste.
+  </p>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">Cancelar</button>
+  <button
+    mat-flat-button
+    type="button"
+    [disabled]="cargando() || negativo() || sinCambio()"
+    (click)="guardar()"
+  >
+    Registrar ajuste
+  </button>
+</mat-dialog-actions>

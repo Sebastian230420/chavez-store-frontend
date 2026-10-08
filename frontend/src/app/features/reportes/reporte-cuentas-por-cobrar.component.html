@@ -1,0 +1,181 @@
+<app-page-header
+  titulo="Cuentas por cobrar"
+  icono="account_balance_wallet"
+  subtitulo="Saldo = ventas a crédito PAGADAS − abonos vigentes. La antigüedad muestra qué deuda ya venció."
+/>
+
+<div class="cs-filtros cs-no-print">
+  <button mat-stroked-button type="button" (click)="cargar()">
+    <mat-icon>refresh</mat-icon>
+    Actualizar
+  </button>
+</div>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (reporte(); as r) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Clientes con deuda"
+      [valor]="(r.resumen.clientesConDeuda | entero) + ''"
+      icono="people"
+      tono="warn"
+    />
+    <app-kpi-card
+      etiqueta="Saldo total"
+      [valor]="r.resumen.saldoTotal | moneda"
+      icono="account_balance_wallet"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Deuda mayor a 90 días"
+      [valor]="r.resumen.deudaMas90Dias | moneda"
+      detalle="Prioridad de cobranza"
+      icono="schedule"
+      [tono]="r.resumen.deudaMas90Dias > 0 ? 'error' : 'ok'"
+    />
+    <app-kpi-card
+      etiqueta="En plazo"
+      [valor]="enCarteraVigente() | moneda"
+      detalle="0 a 60 días"
+      icono="event_available"
+      tono="ok"
+    />
+  </div>
+
+  @if (clientes().length) {
+    @if (alLimite().length) {
+      <mat-card class="cs-panel cs-alerta-panel">
+        <mat-card-header><mat-card-title>Clientes al límite de crédito</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <p class="cs-intro">
+            Estos clientes ya usaron el 90% o más de su cupo. Si no registran un abono,
+            la siguiente venta a crédito será rechazada con <code>SAL_003</code>.
+          </p>
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th class="cs-num">Saldo</th>
+                <th class="cs-num">Límite</th>
+                <th class="cs-num">Uso del cupo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of alLimite(); track c.clienteId) {
+                <tr>
+                  <td><strong>{{ c.nombre }}</strong></td>
+                  <td class="cs-num">{{ c.saldoTotal | moneda }}</td>
+                  <td class="cs-num">{{ c.creditLimit | moneda }}</td>
+                  <td class="cs-num cs-error">{{ usoCupo(c.creditLimit, c.saldoTotal) | porcentaje }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header><mat-card-title>Antigüedad de la deuda</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-scroll-x">
+          <table
+            mat-table
+            [dataSource]="clientes()"
+            matSort
+            matSortActive="saldoTotal"
+            matSortDirection="desc"
+            (matSortChange)="ordenar($event)"
+            class="cs-tabla"
+          >
+            <ng-container matColumnDef="nombre">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+              <td mat-cell *matCellDef="let fila">
+                <strong>{{ fila.nombre }}</strong>
+                <div class="cs-sub cs-suave cs-mono">{{ fila.document }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="saldoTotal">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Saldo</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                <strong>{{ fila.saldoTotal | moneda }}</strong>
+                <div class="cs-sub cs-num cs-suave">
+                  {{ usoCupo(fila.creditLimit, fila.saldoTotal) | porcentaje }} del cupo
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="dias30">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">0-30 días</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                {{ fila.antiguedad.dias30 | moneda }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="dias60">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">31-60 días</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                {{ fila.antiguedad.dias60 | moneda }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="dias90">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">61-90 días</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                {{ fila.antiguedad.dias90 | moneda }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="creditLimit">
+              <th mat-header-cell *matHeaderCellDef class="cs-num">Límite</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num">
+                {{ fila.creditLimit | moneda }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="disponible">
+              <th mat-header-cell *matHeaderCellDef class="cs-num">Disponible</th>
+              <td mat-cell *matCellDef="let fila" class="cs-num" [class.cs-error]="fila.disponible <= 0">
+                {{ fila.disponible | moneda }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="ultimoPago">
+              <th mat-header-cell *matHeaderCellDef>Último pago</th>
+              <td mat-cell *matCellDef="let fila">
+                <app-estado-chip
+                  [valor]="etiquetaAntiguedad(fila.antiguedad.dias90).texto"
+                  [tipo]="etiquetaAntiguedad(fila.antiguedad.dias90).tipo"
+                />
+                <div class="cs-sub cs-suave">
+                  {{ fila.ultimoPago ? (fila.ultimoPago | fecha) : 'Nunca pagó' }}
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+            <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+          </table>
+        </div>
+
+        <p class="cs-intro">
+          El dinero solo entra al sistema cuando se registra un abono (R-CL-07). Por eso el
+          reporte de ganancias y el de cobranza cuentan cosas distintas: uno mide lo vendido,
+          el otro lo cobrado.
+        </p>
+      </mat-card-content>
+    </mat-card>
+  } @else if (!cargando()) {
+    <mat-card class="cs-panel">
+      <app-empty-state
+        icono="task_alt"
+        titulo="Sin cuentas por cobrar"
+        detalle="Ningún cliente tiene deuda pendiente."
+      />
+    </mat-card>
+  }
+}

@@ -1,0 +1,148 @@
+<div class="cs-pagina">
+  <app-page-header
+    [titulo]="'Compra ' + (compra()?.document || '')"
+    icono="local_shipping"
+    [subtitulo]="compra() ? 'Proveedor: ' + (compra()!.proveedor.name || '—') : ''"
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver
+    </button>
+    @if (puedeAnular()) {
+      <button mat-flat-button color="warn" type="button" *appPermiso="Rol.ADMIN" (click)="anular()">
+        <mat-icon>block</mat-icon>
+        Anular compra
+      </button>
+    }
+    @if (puedeRecibir()) {
+      <button mat-flat-button type="button" (click)="recibir()">
+        <mat-icon>move_to_inbox</mat-icon>
+        Recibir en almacén
+      </button>
+    }
+  </app-page-header>
+
+  @if (cargando() || procesando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (compra(); as c) {
+    @if (esAnulada()) {
+      <div class="cs-anulada">
+        <mat-icon>block</mat-icon>
+        <div>
+          <strong>Compra anulada</strong>
+          <span>
+            @if (c.status === 'ANULADA' && c.annulledAt) {
+              Anulada el {{ c.annulledAt | fecha }}
+            } @else {
+              No afecta al stock: nunca fue recibida.
+            }
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="cs-kpis">
+      <app-kpi-card
+        etiqueta="Total"
+        [valor]="c.total | moneda"
+        detalle="Calculado por el servidor"
+        icono="payments"
+        tono="info"
+      />
+      <app-kpi-card
+        etiqueta="Ítems"
+        [valor]="(c.detalles.length | entero) + ''"
+        [detalle]="unidadesTotales() + ' unidades compradas'"
+        icono="inventory_2"
+        tono="neutro"
+      />
+      <app-kpi-card
+        etiqueta="Fecha de emisión"
+        [valor]="(c.issueDate | fecha) + ''"
+        icono="event"
+        tono="neutro"
+      />
+      <app-kpi-card
+        etiqueta="Estado"
+        [valor]="c.status"
+        [detalle]="esRegistrada() ? 'Pendiente de recibir' : esRecibida() ? 'En almacén' : 'Sin efecto en stock'"
+        icono="flag"
+        [tono]="esRegistrada() ? 'warn' : esRecibida() ? 'ok' : 'error'"
+      />
+    </div>
+
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header><mat-card-title>Detalle de la compra</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-ficha">
+          <div class="cs-ficha__dato">
+            <span>Documento</span>
+            <strong class="cs-mono">{{ c.document }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Proveedor</span>
+            <strong>{{ c.proveedor.name || '—' }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Emitida</span>
+            <strong>{{ c.issueDate | fecha }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Registrada</span>
+            <strong>{{ (c.createdAt | fecha: 'larga') || '—' }}</strong>
+          </div>
+        </div>
+
+        @if (c.notes) {
+          <p class="cs-notas">{{ c.notes }}</p>
+        }
+
+        <div class="cs-scroll-x">
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Presentación</th>
+                <th class="cs-num">Cantidad</th>
+                <th class="cs-num">Unidades base</th>
+                <th class="cs-num">Costo unitario</th>
+                <th class="cs-num">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of c.detalles; track $index) {
+                <tr>
+                  <td><strong>{{ d.producto }}</strong></td>
+                  <td>{{ d.presentacion }}</td>
+                  <td class="cs-num">{{ d.qtyBought | entero }}</td>
+                  <td class="cs-num">{{ d.unitsBase | entero }}</td>
+                  <td class="cs-num">{{ d.unitCost | moneda: 4 }}</td>
+                  <td class="cs-num">{{ d.subtotal | moneda }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="cs-total">
+                <td colspan="5">Total</td>
+                <td class="cs-num">{{ c.total | moneda }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        @if (esRegistrada()) {
+          <p class="cs-nota cs-nota--info">
+            <mat-icon inline>info</mat-icon>
+            Esta compra todavía no afecta al inventario. Al recibirla se creará un lote por ítem,
+            se sumarán {{ unidadesTotales() | entero }} unidades base al stock y se recalculará el
+            costo promedio ponderado de cada producto.
+          </p>
+        }
+      </mat-card-content>
+    </mat-card>
+  } @else if (!cargando()) {
+    <app-empty-state icono="search_off" titulo="Compra no encontrada" />
+  }
+</div>

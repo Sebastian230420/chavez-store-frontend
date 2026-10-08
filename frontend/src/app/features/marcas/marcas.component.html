@@ -1,0 +1,68 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Marcas"
+    icono="sell"
+    subtitulo="Fabricante del producto. Es opcional: un producto puede no tener marca."
+  >
+    <button mat-flat-button type="button" *appPermiso="Rol.ADMIN" (click)="abrirFormulario()">
+      <mat-icon>add</mat-icon>
+      Nueva marca
+    </button>
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-card class="cs-panel">
+    @if (datos().length) {
+      <div class="cs-scroll-x">
+        <table mat-table [dataSource]="datos()" class="cs-tabla">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">#</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.id }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nombre</th>
+            <td mat-cell *matCellDef="let fila">
+              <strong>{{ fila.name }}</strong>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="active">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let fila">
+              <app-estado-chip [valor]="fila.active ? 'ACTIVA' : 'INACTIVA'" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let fila" class="mat-column-actions">
+              <ng-container *appPermiso="Rol.ADMIN">
+                <button mat-icon-button type="button" matTooltip="Editar" (click)="abrirFormulario(fila)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (fila.active) {
+                  <button mat-icon-button type="button" matTooltip="Desactivar" (click)="desactivar(fila)">
+                    <mat-icon>toggle_off</mat-icon>
+                  </button>
+                }
+              </ng-container>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+        </table>
+      </div>
+    } @else if (!cargando()) {
+      <app-empty-state
+        icono="sell"
+        titulo="Sin marcas"
+        detalle="Registra las marcas del catálogo, por ejemplo Cristal, Coca-Cola o Red Bull."
+      />
+    }
+  </mat-card>
+</div>

@@ -1,0 +1,117 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Compras"
+    icono="local_shipping"
+    subtitulo="Registrar la compra la deja en REGISTRADA. Al recibirla entran los lotes al almacén y se recalcula el costo promedio."
+  >
+    <button mat-stroked-button type="button" (click)="cargar()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+    @if (puedeGestionar) {
+      <a mat-flat-button routerLink="/compras/nueva">
+        <mat-icon>add</mat-icon>
+        Nueva compra
+      </a>
+    }
+  </app-page-header>
+
+  <mat-card class="cs-panel cs-filtros">
+    <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+
+    <div class="cs-toolbar-filtros cs-mt">
+      <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+        <mat-label>Estado</mat-label>
+        <mat-select [ngModel]="estado()" (ngModelChange)="cambiarEstado($event)">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (e of estados; track e) {
+            <mat-option [value]="e">{{ e }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="cs-select cs-select--ancho" subscriptSizing="dynamic">
+        <mat-label>Proveedor</mat-label>
+        <mat-select [ngModel]="proveedorId()" (ngModelChange)="cambiarProveedor($event)">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (proveedor of proveedores(); track proveedor.id) {
+            <mat-option [value]="proveedor.id">{{ proveedor.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </mat-card>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-card class="cs-panel">
+    @if (filas().length) {
+      <div class="cs-scroll-x">
+        <table mat-table [dataSource]="filas()" class="cs-tabla">
+          <ng-container matColumnDef="document">
+            <th mat-header-cell *matHeaderCellDef>Documento</th>
+            <td mat-cell *matCellDef="let fila" class="cs-mono">{{ fila.document }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="issueDate">
+            <th mat-header-cell *matHeaderCellDef>Emisión</th>
+            <td mat-cell *matCellDef="let fila">{{ fila.issueDate | fecha }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="proveedor">
+            <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+            <td mat-cell *matCellDef="let fila">{{ fila.proveedor?.name || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="items">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">Ítems</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ cantidadItems(fila) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">Total</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              <strong>{{ fila.total | moneda }}</strong>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let fila">
+              <app-estado-chip [valor]="fila.status" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let fila" class="mat-column-actions">
+              <button mat-icon-button type="button" matTooltip="Ver detalle" (click)="ver(fila)">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas" [class.cs-apagado]="fila.status === 'ANULADA'"></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="total()"
+        [pageIndex]="pagina()"
+        [pageSize]="tamano()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="cambiarPagina($event)"
+        showFirstLastButtons
+      />
+    } @else if (!cargando()) {
+      <app-empty-state
+        icono="local_shipping"
+        titulo="Sin compras en el período"
+        detalle="Ajusta los filtros o registra una compra nueva."
+      />
+    }
+  </mat-card>
+</div>

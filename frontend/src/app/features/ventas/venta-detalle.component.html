@@ -1,0 +1,141 @@
+<div class="cs-pagina">
+  <app-page-header
+    [titulo]="venta()?.document || 'Venta'"
+    icono="receipt_long"
+    [subtitulo]="venta() ? 'Registrada por ' + venta()!.registradoPor : ''"
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver
+    </button>
+    @if (puedeAnular()) {
+      <button mat-flat-button color="warn" type="button" *appPermiso="Rol.ADMIN" (click)="anular()">
+        <mat-icon>block</mat-icon>
+        Anular venta
+      </button>
+    }
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (venta(); as v) {
+    @if (anulada()) {
+      <div class="cs-anulada">
+        <mat-icon>block</mat-icon>
+        <div>
+          <strong>Venta anulada</strong>
+          <span>
+            {{ v.annulledAt | fecha: 'larga' }}
+            @if (v.annulReason) {
+              · “{{ v.annulReason }}”
+            }
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="cs-kpis">
+      <app-kpi-card etiqueta="Total" [valor]="v.total | moneda" icono="payments" tono="info" />
+      <app-kpi-card
+        etiqueta="Costo de ventas"
+        [valor]="v.costTotal | moneda"
+        detalle="Snapshot congelado al registrar"
+        icono="inventory"
+        tono="neutro"
+      />
+      <app-kpi-card
+        etiqueta="Utilidad"
+        [valor]="v.profit | moneda"
+        [detalle]="margenPct() !== null ? (margenPct() | porcentaje) + ' de margen' : ''"
+        icono="trending_up"
+        [tono]="v.profit < 0 ? 'error' : 'ok'"
+      />
+      <app-kpi-card
+        etiqueta="Tipo"
+        [valor]="v.type"
+        [detalle]="v.cliente ? v.cliente.name : 'Consumidor no identificado'"
+        icono="storefront"
+        tono="neutro"
+      />
+    </div>
+
+    <mat-card class="cs-panel">
+      <mat-card-header><mat-card-title>Detalle de la venta</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-ficha">
+          <div class="cs-ficha__dato">
+            <span>Documento</span>
+            <strong class="cs-mono">{{ v.document }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Fecha</span>
+            <strong>{{ v.fecha | fecha: 'larga' }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Registrado por</span>
+            <strong>{{ v.registradoPor }}</strong>
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Estado</span>
+            <app-estado-chip [valor]="v.status" />
+          </div>
+          <div class="cs-ficha__dato">
+            <span>Unidades base</span>
+            <strong>{{ unidadesBaseTotales() | entero }}</strong>
+          </div>
+        </div>
+
+        <div class="cs-scroll-x">
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Presentación</th>
+                <th>Lote (FEFO)</th>
+                <th class="cs-num">Cantidad</th>
+                <th class="cs-num">Unidades base</th>
+                <th class="cs-num">Precio</th>
+                <th class="cs-num">Costo</th>
+                <th class="cs-num">Subtotal</th>
+                <th class="cs-num">Utilidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of v.detalles; track $index) {
+                <tr>
+                  <td><strong>{{ d.producto }}</strong></td>
+                  <td>{{ d.presentacion }}</td>
+                  <td class="cs-mono cs-suave">{{ d.lote || 'sin lote' }}</td>
+                  <td class="cs-num">{{ d.qty | entero }}</td>
+                  <td class="cs-num">{{ d.unitsBase | entero }}</td>
+                  <td class="cs-num">{{ d.unitPrice | moneda }}</td>
+                  <td class="cs-num">{{ d.unitCost | moneda: 4 }}</td>
+                  <td class="cs-num">{{ d.subtotal | moneda }}</td>
+                  <td class="cs-num" [class.cs-error]="d.profit < 0">{{ d.profit | moneda }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="cs-total">
+                <td colspan="7">Total</td>
+                <td class="cs-num">{{ v.total | moneda }}</td>
+                <td class="cs-num">{{ v.profit | moneda }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <p class="cs-nota">
+          <mat-icon inline>info</mat-icon>
+          Esta pantalla no registra pagos ni emite comprobante para el cliente: es un asiento
+          interno. El precio y el costo de cada ítem están congelados al momento del registro,
+          por eso los reportes de meses anteriores no cambian (R-V-03, R-R-03).
+        </p>
+      </mat-card-content>
+    </mat-card>
+  } @else if (!cargando()) {
+    <app-empty-state icono="search_off" titulo="Venta no encontrada" />
+  }
+</div>

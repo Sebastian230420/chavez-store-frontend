@@ -1,0 +1,110 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Proveedores"
+    icono="store"
+    subtitulo="Un proveedor inactivo no puede recibir compras nuevas."
+  >
+    <button mat-stroked-button type="button" (click)="cargar()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+    <button mat-flat-button type="button" *appPermiso="[Rol.ADMIN, Rol.ALMACENERO]" (click)="abrirFormulario()">
+      <mat-icon>add_business</mat-icon>
+      Nuevo proveedor
+    </button>
+  </app-page-header>
+
+  <mat-card class="cs-panel cs-filtros">
+    <div class="cs-toolbar-filtros">
+      <mat-form-field appearance="outline" class="cs-buscador" subscriptSizing="dynamic">
+        <mat-label>Buscar por nombre o documento</mat-label>
+        <input
+          matInput
+          type="search"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keyup.enter)="buscar()"
+        />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-checkbox [ngModel]="soloActivos()" (ngModelChange)="alternarActivos()">
+        Solo activos
+      </mat-checkbox>
+    </div>
+  </mat-card>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-card class="cs-panel">
+    @if (filas().length) {
+      <div class="cs-scroll-x">
+        <table mat-table [dataSource]="filas()" class="cs-tabla">
+          <ng-container matColumnDef="document">
+            <th mat-header-cell *matHeaderCellDef>Documento</th>
+            <td mat-cell *matCellDef="let fila" class="cs-mono">{{ fila.document }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+            <td mat-cell *matCellDef="let fila"><strong>{{ fila.name }}</strong></td>
+          </ng-container>
+
+          <ng-container matColumnDef="contacto">
+            <th mat-header-cell *matHeaderCellDef>Contacto</th>
+            <td mat-cell *matCellDef="let fila" class="cs-suave">
+              @if (fila.phone) {
+                <div>{{ fila.phone }}</div>
+              }
+              @if (fila.email) {
+                <div class="cs-sub">{{ fila.email }}</div>
+              }
+              @if (!fila.phone && !fila.email) {
+                —
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="address">
+            <th mat-header-cell *matHeaderCellDef>Dirección</th>
+            <td mat-cell *matCellDef="let fila" class="cs-suave">{{ fila.address || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="active">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let fila">
+              <app-estado-chip [valor]="fila.active ? 'ACTIVA' : 'INACTIVA'" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let fila" class="mat-column-actions">
+              <ng-container *appPermiso="[Rol.ADMIN, Rol.ALMACENERO]">
+                <button mat-icon-button type="button" matTooltip="Editar" (click)="abrirFormulario(fila)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (fila.active) {
+                  <button mat-icon-button type="button" matTooltip="Desactivar" (click)="desactivar(fila)">
+                    <mat-icon>toggle_off</mat-icon>
+                  </button>
+                }
+              </ng-container>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas" [class.cs-apagado]="!fila.active"></tr>
+        </table>
+      </div>
+    } @else if (!cargando()) {
+      <app-empty-state
+        icono="store"
+        titulo="Sin proveedores"
+        detalle="Registra los proveedores con los que compras mercadería."
+      />
+    }
+  </mat-card>
+</div>

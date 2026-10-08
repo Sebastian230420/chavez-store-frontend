@@ -1,0 +1,130 @@
+:host {
+  display: block;
+}
+
+.cs-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-lineas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-linea {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.6fr) minmax(0, 1.3fr) 120px 120px 140px 120px 48px;
+  gap: 0 10px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.cs-linea__indice {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cs-texto-suave);
+}
+
+.cs-linea__subtotal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 56px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+  }
+
+  strong {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.cs-acciones {
+  margin-top: 12px;
+}
+
+.cs-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f3f5f7;
+  color: var(--cs-texto-suave);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.cs-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+
+  span {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  strong {
+    font-size: 24px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.cs-ayuda {
+  margin: 4px 0 0;
+  font-size: 12px;
+  text-align: right;
+}
+
+.cs-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1280px) {
+  .cs-linea {
+    grid-template-columns: 28px repeat(2, minmax(0, 1fr)) 48px;
+  }
+
+  .cs-linea__subtotal {
+    grid-column: span 2;
+    height: auto;
+    padding: 4px 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .cs-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

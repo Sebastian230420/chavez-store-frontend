@@ -1,0 +1,223 @@
+<div class="cs-pagina">
+  <app-page-header
+    [titulo]="cliente()?.fullName || 'Cliente'"
+    icono="person"
+    [subtitulo]="cliente() ? (cliente()!.document + ' · ' + cliente()!.type) : ''"
+  >
+    <button mat-stroked-button type="button" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver
+    </button>
+    <ng-container *appPermiso="[Rol.ADMIN, Rol.CAJERO]">
+      <button mat-stroked-button color="primary" type="button" (click)="registrarAbono()">
+        <mat-icon>payments</mat-icon>
+        Registrar abono
+      </button>
+    </ng-container>
+    <ng-container *appPermiso="Rol.ADMIN">
+      <button mat-flat-button type="button" (click)="editarLimite()">
+        <mat-icon>credit_card</mat-icon>
+        Límite de crédito
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (cliente(); as c) {
+    <div class="cs-kpis">
+      <app-kpi-card
+        etiqueta="Saldo pendiente"
+        [valor]="saldo() | moneda"
+        detalle="Ventas a crédito menos abonos vigentes"
+        icono="account_balance_wallet"
+        [tono]="saldo() > 0 ? 'warn' : 'ok'"
+      />
+      <app-kpi-card
+        etiqueta="Límite de crédito"
+        [valor]="c.creditLimit | moneda"
+        [detalle]="c.creditLimit > 0 ? (usoCupo() | porcentaje) + ' del cupo usado' : 'Sin cupo'"
+        icono="credit_score"
+        tono="info"
+      />
+      <app-kpi-card
+        etiqueta="Disponible"
+        [valor]="disponible() | moneda"
+        detalle="Cupo que aún puede usarse"
+        icono="savings"
+        [tono]="disponible() <= 0 ? 'error' : 'ok'"
+      />
+      <app-kpi-card
+        etiqueta="Ventas (30 días)"
+        [valor]="(c.ventasUltimos30Dias.length | entero) + ''"
+        detalle="De los últimos 30 días"
+        icono="receipt_long"
+        tono="neutro"
+      />
+    </div>
+
+    <div class="cs-dos-columnas cs-mt">
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Ventas de los últimos 30 días</mat-card-title></mat-card-header>
+        <mat-card-content>
+          @if (c.ventasUltimos30Dias.length) {
+            <div class="cs-scroll-x">
+              <table class="cs-tabla">
+                <thead>
+                  <tr>
+                    <th>Documento</th>
+                    <th>Fecha</th>
+                    <th class="cs-num">Total</th>
+                    <th class="cs-num">Utilidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (venta of c.ventasUltimos30Dias; track venta.document) {
+                    <tr>
+                      <td class="cs-mono">{{ venta.document }}</td>
+                      <td>{{ venta.fecha | fecha }}</td>
+                      <td class="cs-num">{{ venta.total | moneda }}</td>
+                      <td class="cs-num">{{ venta.profit | moneda }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="cs-vacio">Sin ventas en los últimos 30 días.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="cs-panel">
+        <mat-card-header><mat-card-title>Contacto y datos</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <div class="cs-ficha">
+            <div class="cs-ficha__dato">
+              <span>Teléfono</span>
+              <strong>{{ c.phone || '—' }}</strong>
+            </div>
+            <div class="cs-ficha__dato">
+              <span>Email</span>
+              <strong>{{ c.email || '—' }}</strong>
+            </div>
+            <div class="cs-ficha__dato">
+              <span>Dirección</span>
+              <strong>{{ c.address || '—' }}</strong>
+            </div>
+            <div class="cs-ficha__dato">
+              <span>Estado</span>
+              <app-estado-chip [valor]="c.active ? 'ACTIVA' : 'INACTIVA'" />
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card class="cs-panel cs-mt">
+      <mat-card-header>
+        <mat-card-title>Historial de abonos</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="cs-nota cs-nota--info">
+          <mat-icon inline>info</mat-icon>
+          Los abonos son el único registro de dinero recibido en el sistema.
+        </p>
+
+        @if (cargandoAbonos()) {
+          <mat-progress-bar mode="indeterminate" />
+        } @else if (abonos().length) {
+          <div class="cs-scroll-x">
+            <table mat-table [dataSource]="abonos()" class="cs-tabla">
+              <ng-container matColumnDef="fecha">
+                <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                <td mat-cell *matCellDef="let fila">{{ (fila.fecha ?? fila.createdAt) | fecha }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef class="cs-num">Monto</th>
+                <td mat-cell *matCellDef="let fila" class="cs-num">
+                  <strong>{{ fila.amount | moneda }}</strong>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="method">
+                <th mat-header-cell *matHeaderCellDef>Método</th>
+                <td mat-cell *matCellDef="let fila" class="cs-suave">{{ fila.method }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="appliedSaleId">
+                <th mat-header-cell *matHeaderCellDef>Aplicado a</th>
+                <td mat-cell *matCellDef="let fila" class="cs-suave">
+                  @if (fila.appliedSaleId) {
+                    Venta #{{ fila.appliedSaleId }}
+                  } @else {
+                    Cuenta general
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="registradoPor">
+                <th mat-header-cell *matHeaderCellDef>Registrado por</th>
+                <td mat-cell *matCellDef="let fila" class="cs-suave">{{ fila.registradoPor || '—' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
+                <td mat-cell *matCellDef="let fila">
+                  <app-estado-chip
+                    [valor]="fila.annulledAt ? 'ANULADO' : 'VIGENTE'"
+                    [tipo]="fila.annulledAt ? 'error' : 'ok'"
+                  />
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let fila" class="mat-column-actions">
+                  <ng-container *appPermiso="Rol.ADMIN">
+                    @if (!fila.annulledAt) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Anular abono"
+                        (click)="anularAbono(fila)"
+                      >
+                        <mat-icon>block</mat-icon>
+                      </button>
+                    }
+                  </ng-container>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columnasAbonos"></tr>
+              <tr
+                mat-row
+                *matRowDef="let fila; columns: columnasAbonos"
+                [class.cs-apagado]="!!fila.annulledAt"
+              ></tr>
+            </table>
+          </div>
+
+          <mat-paginator
+            [length]="totalAbonos()"
+            [pageIndex]="paginaAbonos()"
+            [pageSize]="20"
+            [hidePageSize]="true"
+            (page)="cambiarPaginaAbonos($event)"
+          />
+        } @else {
+          <app-empty-state
+            icono="payments"
+            titulo="Sin abonos"
+            detalle="Cuando el cliente pague, registra el abono para reducir su deuda."
+          />
+        }
+      </mat-card-content>
+    </mat-card>
+  } @else if (!cargando()) {
+    <app-empty-state icono="person_off" titulo="Cliente no encontrado" />
+  }
+</div>

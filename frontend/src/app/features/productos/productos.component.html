@@ -1,0 +1,202 @@
+<div class="cs-pagina">
+  <app-page-header
+    titulo="Productos"
+    icono="inventory_2"
+    subtitulo="Todo el stock se lleva en unidad base; las presentaciones solo convierten a esa unidad."
+  >
+    <button mat-stroked-button type="button" (click)="cargar()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+    <button mat-flat-button type="button" *appPermiso="[Rol.ADMIN, Rol.SUPERVISOR]" (click)="abrirFormulario()">
+      <mat-icon>add</mat-icon>
+      Nuevo producto
+    </button>
+  </app-page-header>
+
+  <mat-card class="cs-panel cs-filtros">
+    <div class="cs-toolbar-filtros">
+      <mat-form-field appearance="outline" class="cs-buscador" subscriptSizing="dynamic">
+        <mat-label>Buscar por nombre, SKU o código de barras</mat-label>
+        <input
+          matInput
+          type="search"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keyup.enter)="buscar()"
+        />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+        <mat-label>Categoría</mat-label>
+        <mat-select
+          [ngModel]="categoriaId()"
+          (ngModelChange)="cambiarCategoria($event)"
+        >
+          <mat-option [value]="null">Todas</mat-option>
+          @for (categoria of categorias(); track categoria.id) {
+            <mat-option [value]="categoria.id">{{ categoria.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+        <mat-label>Marca</mat-label>
+        <mat-select [ngModel]="marcaId()" (ngModelChange)="cambiarMarca($event)">
+          <mat-option [value]="null">Todas</mat-option>
+          @for (marca of marcas(); track marca.id) {
+            <mat-option [value]="marca.id">{{ marca.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox [ngModel]="soloStockBajo()" (ngModelChange)="alternarStockBajo()">
+        Solo stock bajo
+      </mat-checkbox>
+
+      <button mat-stroked-button type="button" (click)="limpiarFiltros()">
+        <mat-icon>filter_alt_off</mat-icon>
+        Limpiar
+      </button>
+    </div>
+
+    @if (hayStockBajo()) {
+      <p class="cs-alerta">
+        <mat-icon inline>warning</mat-icon>
+        Hay productos con stock en o por debajo del mínimo.
+      </p>
+    }
+  </mat-card>
+
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-card class="cs-panel">
+    @if (filas().length) {
+      <div class="cs-scroll-x">
+        <table mat-table [dataSource]="filas()" class="cs-tabla">
+          <ng-container matColumnDef="sku">
+            <th mat-header-cell *matHeaderCellDef>SKU</th>
+            <td mat-cell *matCellDef="let fila" class="cs-mono">{{ fila.sku }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef>Producto</th>
+            <td mat-cell *matCellDef="let fila">
+              <strong>{{ fila.name }}</strong>
+              @if (fila.description) {
+                <div class="cs-suave cs-sub">{{ fila.description }}</div>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="categoria">
+            <th mat-header-cell *matHeaderCellDef>Categoría / Marca</th>
+            <td mat-cell *matCellDef="let fila">
+              {{ fila.categoria?.name || '—' }}
+              @if (fila.marca?.name) {
+                <div class="cs-suave cs-sub">{{ fila.marca?.name }}</div>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="presentaciones">
+            <th mat-header-cell *matHeaderCellDef>Presentaciones</th>
+            <td mat-cell *matCellDef="let fila">
+              @if (presentacionesVenta(fila).length) {
+                <div class="cs-tags">
+                  @for (p of presentacionesVenta(fila); track p.id) {
+                    <span class="cs-tag" [matTooltip]="p.unitsBase + ' unidad(es) base'">
+                      {{ p.name }} · {{ p.price | moneda }}
+                    </span>
+                  }
+                </div>
+              } @else {
+                <span class="cs-error">Sin presentación VENTA</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="stock">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">Stock</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              <app-estado-chip [valor]="estadoStock(fila)" />
+              <div class="cs-suave cs-sub cs-num">
+                {{ fila.stock | entero }} / mín. {{ fila.minStock | entero }}
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="costo">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">Costo prom.</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              {{ fila.costAvg | moneda: 4 }}
+              <div class="cs-suave cs-sub cs-num">no editable</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="margen">
+            <th mat-header-cell *matHeaderCellDef class="cs-num">Margen</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              {{ fila.margenTeorico ?? 0 | porcentaje }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let fila">
+              <app-estado-chip [valor]="fila.active ? 'ACTIVO' : 'INACTIVO'" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let fila" class="mat-column-actions">
+              <button mat-icon-button type="button" matTooltip="Ver ficha" (click)="verDetalle(fila)">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <ng-container *appPermiso="[Rol.ADMIN, Rol.SUPERVISOR]">
+                <button mat-icon-button type="button" matTooltip="Editar" (click)="abrirFormulario(fila)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button type="button" matTooltip="Carga de stock inicial" (click)="cargarStock(fila)">
+                  <mat-icon>move_to_inbox</mat-icon>
+                </button>
+                <button mat-icon-button type="button" matTooltip="Agregar presentación" (click)="abrirPresentacion(fila)">
+                  <mat-icon>add_box</mat-icon>
+                </button>
+              </ng-container>
+              <ng-container *appPermiso="Rol.ADMIN">
+                @if (fila.active) {
+                  <button mat-icon-button type="button" matTooltip="Desactivar" (click)="desactivar(fila)">
+                    <mat-icon>toggle_off</mat-icon>
+                  </button>
+                }
+              </ng-container>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas" [class.cs-apagado]="!fila.active"></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="total()"
+        [pageIndex]="pagina()"
+        [pageSize]="tamano()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="cambiarPagina($event)"
+        showFirstLastButtons
+      />
+    } @else if (!cargando()) {
+      <app-empty-state
+        icono="inventory_2"
+        titulo="Sin productos"
+        detalle="Registra el primer producto con sus presentaciones de compra y de venta."
+      />
+    }
+  </mat-card>
+</div>

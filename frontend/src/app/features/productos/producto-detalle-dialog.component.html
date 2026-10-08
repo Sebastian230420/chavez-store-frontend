@@ -1,0 +1,143 @@
+<h2 mat-dialog-title class="cs-titulo">
+  {{ producto().name }}
+  <button mat-icon-button type="button" class="cs-refrescar" matTooltip="Recargar" (click)="recargar()">
+    <mat-icon>refresh</mat-icon>
+  </button>
+</h2>
+
+<mat-dialog-content>
+  <div class="cs-ficha">
+    <div class="cs-ficha__dato">
+      <span>SKU</span>
+      <strong class="cs-mono">{{ producto().sku }}</strong>
+    </div>
+    <div class="cs-ficha__dato">
+      <span>Código de barras</span>
+      <strong class="cs-mono">{{ producto().barcode || '—' }}</strong>
+    </div>
+    <div class="cs-ficha__dato">
+      <span>Categoría</span>
+      <strong>{{ producto().categoria?.name || '—' }}</strong>
+    </div>
+    <div class="cs-ficha__dato">
+      <span>Marca</span>
+      <strong>{{ producto().marca?.name || '—' }}</strong>
+    </div>
+    <div class="cs-ficha__dato">
+      <span>Unidad base</span>
+      <strong>
+        {{ producto().baseUnit }}
+        @if (producto().contentMl) {
+          · {{ producto().contentMl }} ml
+        }
+      </strong>
+    </div>
+    <div class="cs-ficha__dato">
+      <span>Estado</span>
+      <app-estado-chip [valor]="producto().active ? 'ACTIVO' : 'INACTIVO'" />
+    </div>
+  </div>
+
+  <div class="cs-kpis cs-kpis--compactas">
+    <div class="cs-metrica">
+      <span>Stock</span>
+      <strong>{{ producto().stock | entero }}</strong>
+      <small class="cs-suave">mín. {{ producto().minStock | entero }}</small>
+    </div>
+    <div class="cs-metrica">
+      <span>Costo promedio</span>
+      <strong>{{ producto().costAvg | moneda: 4 }}</strong>
+      <small class="cs-suave">lo recalcula el sistema</small>
+    </div>
+    <div class="cs-metrica">
+      <span>Margen teórico</span>
+      <strong>{{ producto().margenTeorico ?? 0 | porcentaje }}</strong>
+      <small class="cs-suave">(precio − costo) / precio</small>
+    </div>
+  </div>
+
+  <h3 class="cs-titulo-seccion">Presentaciones</h3>
+  @if (producto().presentaciones.length) {
+    <table class="cs-tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th class="cs-num">Unidades base</th>
+          <th class="cs-num">Precio</th>
+          <th class="cs-num">Stock mín.</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of producto().presentaciones; track p.id) {
+          <tr [class.cs-apagado]="p.active === false">
+            <td><strong>{{ p.name }}</strong></td>
+            <td>
+              <app-estado-chip
+                [valor]="p.type"
+                [tipo]="p.type === TipoPresentacion.VENTA ? 'info' : 'neutro'"
+              />
+            </td>
+            <td class="cs-num">{{ p.unitsBase | entero }}</td>
+            <td class="cs-num">
+              {{ p.type === TipoPresentacion.VENTA ? (p.price | moneda) : '—' }}
+            </td>
+            <td class="cs-num cs-suave">{{ p.stockMin === null || p.stockMin === undefined ? '—' : (p.stockMin | entero) }}</td>
+            <td class="mat-column-actions">
+              <ng-container *appPermiso="Rol.ADMIN">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Editar presentación"
+                  (click)="editarPresentacion(p.id)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <app-empty-state titulo="Sin presentaciones" detalle="Debe tener al menos una de tipo VENTA." />
+  }
+
+  <h3 class="cs-titulo-seccion">Lotes por vencer</h3>
+  @if (producto().lotesPorVencer?.length) {
+    <table class="cs-tabla">
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Vence</th>
+          <th class="cs-num">Días restantes</th>
+          <th class="cs-num">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (lote of producto().lotesPorVencer; track lote.lotCode) {
+          <tr>
+            <td class="cs-mono">{{ lote.lotCode }}</td>
+            <td>{{ lote.expiryDate | fecha }}</td>
+            <td class="cs-num" [class.cs-error]="(lote.diasRestantes ?? 99) <= 7">
+              {{ lote.diasRestantes === null || lote.diasRestantes === undefined ? '—' : (lote.diasRestantes | entero) }}
+            </td>
+            <td class="cs-num">{{ lote.qtyRemaining | entero }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <p class="cs-suave cs-vacio">Sin lotes por vencer registrados.</p>
+  }
+
+  <p class="cs-nota">
+    <mat-icon inline>info</mat-icon>
+    El stock mostrado es un valor cacheado. El kardex (movimientos) es la fuente de verdad.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cerrar()">Cerrar</button>
+</mat-dialog-actions>

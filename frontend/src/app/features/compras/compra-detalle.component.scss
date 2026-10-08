@@ -1,0 +1,97 @@
+:host {
+  display: block;
+}
+
+.cs-anulada {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--cs-error-bg);
+  color: var(--cs-error);
+  border: 1px solid #f2c7c1;
+
+  mat-icon {
+    flex: 0 0 auto;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  strong {
+    font-size: 14px;
+  }
+
+  span {
+    font-size: 12.5px;
+  }
+}
+
+.cs-mt {
+  margin-top: 16px;
+}
+
+.cs-ficha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+  background: #fbfcfd;
+  margin-bottom: 16px;
+}
+
+.cs-ficha__dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+  }
+
+  strong {
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+}
+
+.cs-notas {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--cs-borde);
+  color: var(--cs-texto-suave);
+  font-size: 13px;
+  background: #fbfcfd;
+}
+
+.cs-total td {
+  font-weight: 600;
+  border-top: 2px solid var(--cs-borde);
+  border-bottom: 0;
+  background: #fafbfc;
+}
+
+.cs-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.cs-nota--info {
+  background: var(--cs-info-bg);
+  color: var(--cs-info);
+}

@@ -1,0 +1,168 @@
+<app-page-header
+  titulo="Ganancia por producto"
+  icono="inventory_2"
+  subtitulo="Rotación, margen real y días sin venta. Incluye los productos que no se movieron en el período."
+/>
+
+<div class="cs-filtros">
+  <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+
+  <div class="cs-toolbar-filtros cs-mt">
+    <mat-form-field appearance="outline" class="cs-buscador" subscriptSizing="dynamic">
+      <mat-label>Filtrar por nombre o SKU</mat-label>
+      <input matInput type="search" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+      <mat-label>Categoría</mat-label>
+      <mat-select [ngModel]="categoriaId()" (ngModelChange)="cambiarCategoria($event)">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (categoria of categorias(); track categoria.id) {
+          <mat-option [value]="categoria.id">{{ categoria.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="cs-select" subscriptSizing="dynamic">
+      <mat-label>Ordenar por</mat-label>
+      <mat-select [ngModel]="orden()" (ngModelChange)="cambiarOrden($event)">
+        @for (opcion of ordenes; track opcion.valor) {
+          <mat-option [value]="opcion.valor">{{ opcion.etiqueta }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="cs-select cs-select--corto" subscriptSizing="dynamic">
+      <mat-label>Límite</mat-label>
+      <mat-select [ngModel]="limite()" (ngModelChange)="cambiarLimite($event)">
+        @for (n of [25, 50, 100, 200]; track n) {
+          <mat-option [value]="n">{{ n }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</div>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (datos().length) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Productos"
+      [valor]="(totalProductos() | entero) + ''"
+      [detalle]="(datosFiltrados().length | entero) + ' mostrados'"
+      icono="grid_view"
+      tono="neutro"
+    />
+    <app-kpi-card
+      etiqueta="Con merma"
+      [valor]="(conMerma().length | entero) + ''"
+      detalle="Perdieron utilidad"
+      icono="delete_outline"
+      tono="warn"
+    />
+    <app-kpi-card
+      etiqueta="Sin venta 30+ días"
+      [valor]="(sinVentaReciente().length | entero) + ''"
+      detalle="No rotan"
+      icono="schedule"
+      tono="error"
+    />
+  </div>
+
+  <mat-card class="cs-panel">
+    <mat-card-header><mat-card-title>Detalle por producto</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="cs-scroll-x">
+        <table
+          mat-table
+          [dataSource]="datosFiltrados()"
+          matSort
+          matSortActive="utilidad"
+          matSortDirection="desc"
+          (matSortChange)="ordenar($event)"
+          class="cs-tabla"
+        >
+          <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Producto</th>
+            <td mat-cell *matCellDef="let fila">
+              <strong>{{ fila.nombre }}</strong>
+              <div class="cs-sub cs-suave cs-mono">{{ fila.sku }} · {{ fila.categoria }}</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="unidadesVendidas">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Unidades</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              {{ fila.unidadesVendidas | entero }}
+              <div class="cs-sub cs-suave cs-num">{{ fila.litrosVendidos | entero }} L</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="ingresos">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Ingresos</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.ingresos | moneda }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="costo">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Costo</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.costo | moneda }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="mermas">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Mermas</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num" [class.cs-error]="fila.mermas > 0">
+              {{ fila.mermas | moneda }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="utilidad">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Utilidad</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num" [class.cs-error]="fila.utilidad < 0">
+              <strong>{{ fila.utilidad | moneda }}</strong>
+              <div class="cs-sub cs-suave cs-num">{{ fila.margenRealPct | porcentaje }}</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="margenRealPct">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Margen real</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">
+              {{ fila.margenRealPct | porcentaje }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="stockActual">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Stock</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.stockActual | entero }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="rotacion">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Rotación</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num">{{ fila.rotacion | numero }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="diasSinVenta">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cs-num">Días sin venta</th>
+            <td mat-cell *matCellDef="let fila" class="cs-num" [class.cs-error]="fila.diasSinVenta >= 30">
+              {{ fila.diasSinVenta | entero }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+} @else if (!cargando()) {
+  <mat-card class="cs-panel">
+    <app-empty-state
+      icono="inventory_2"
+      titulo="Sin datos en el período"
+      detalle="No hay ventas registradas en las fechas seleccionadas."
+    />
+  </mat-card>
+}

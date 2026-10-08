@@ -1,0 +1,55 @@
+.cs-sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.cs-confirmacion p {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+}
+
+.cs-confirmacion ol {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: #3d4553;
+}
+
+.cs-preview h4,
+.cs-resultado h4 {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cs-texto-suave);
+}
+
+.cs-preview h4:first-child {
+  margin-top: 0;
+}
+
+.cs-resultado mat-divider {
+  margin: 18px 0 4px;
+}
+
+.cs-nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.cs-nota--warn {
+  background: var(--cs-warn-bg);
+  color: var(--cs-warn);
+}
+
+.cs-nota--ok {
+  background: var(--cs-ok-bg);
+  color: var(--cs-ok);
+}

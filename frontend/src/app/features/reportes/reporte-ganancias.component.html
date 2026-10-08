@@ -1,0 +1,166 @@
+<app-page-header titulo="Ganancias por período" icono="trending_up" subtitulo="Utilidad = ingresos − costo de ventas − mermas. Solo se cuentan ventas PAGADA." />
+
+<div class="cs-filtros cs-no-print">
+  <app-rango-fechas [desde]="desde()" [hasta]="hasta()" (cambio)="cambiarRango($event)" />
+
+  <div class="cs-acciones">
+    <button mat-stroked-button type="button" [disabled]="exportando()" (click)="exportar('excel')">
+      <mat-icon>table_view</mat-icon>
+      Excel
+    </button>
+    <button mat-stroked-button type="button" [disabled]="exportando()" (click)="exportar('pdf')">
+      <mat-icon>picture_as_pdf</mat-icon>
+      PDF
+    </button>
+    <button mat-icon-button type="button" matTooltip="Imprimir" (click)="imprimir()">
+      <mat-icon>print</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (cargando() || exportando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (reporte(); as r) {
+  <div class="cs-kpis">
+    <app-kpi-card
+      etiqueta="Ventas"
+      [valor]="(r.totales.ventasCount | entero) + ''"
+      [detalle]="(r.totales.unidadesVendidas | entero) + ' unidades vendidas'"
+      icono="receipt_long"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Ingresos"
+      [valor]="r.totales.ingresos | moneda"
+      detalle="Sin impuestos: subtotal = total"
+      icono="payments"
+      tono="info"
+    />
+    <app-kpi-card
+      etiqueta="Costo de ventas"
+      [valor]="r.totales.costoVentas | moneda"
+      detalle="Costo congelado al registrar"
+      icono="inventory"
+      tono="neutro"
+    />
+    <app-kpi-card
+      etiqueta="Mermas"
+      [valor]="r.totales.mermas | moneda"
+      detalle="Pérdidas del período"
+      icono="delete_outline"
+      [tono]="r.totales.mermas > 0 ? 'error' : 'neutro'"
+    />
+    <app-kpi-card
+      etiqueta="Utilidad neta"
+      [valor]="r.totales.utilidadNeta | moneda"
+      [detalle]="r.totales.margenPct | porcentaje"
+      icono="savings"
+      [tono]="margenNegativo() ? 'error' : 'ok'"
+    />
+    <app-kpi-card
+      etiqueta="Recaudado en abonos"
+      [valor]="r.recaudadoAbonos | moneda"
+      detalle="Único dinero registrado por el sistema"
+      icono="payments"
+      tono="ok"
+    />
+  </div>
+
+  <mat-card class="cs-panel">
+    <mat-card-header>
+      <mat-card-title>Ingresos, costo y utilidad por día</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (r.porDia.length) {
+        <div class="cs-grafica">
+          <canvas
+            baseChart
+            type="line"
+            [data]="datosGrafica()"
+            [options]="opcionesGrafica"
+          ></canvas>
+        </div>
+      } @else {
+        <app-empty-state
+          icono="show_chart"
+          titulo="Sin ventas en el período"
+          detalle="Amplía el rango de fechas."
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <div class="cs-dos-columnas cs-mt">
+    <mat-card class="cs-panel">
+      <mat-card-header><mat-card-title>Detalle por día</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="cs-scroll-x">
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th class="cs-num">Ventas</th>
+                <th class="cs-num">Ingresos</th>
+                <th class="cs-num">Costo</th>
+                <th class="cs-num">Mermas</th>
+                <th class="cs-num">Utilidad</th>
+                <th class="cs-num">Margen</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of r.porDia; track d.fecha) {
+                <tr>
+                  <td>{{ d.fecha | fecha }}</td>
+                  <td class="cs-num">{{ d.ventasCount | entero }}</td>
+                  <td class="cs-num">{{ d.ingresos | moneda }}</td>
+                  <td class="cs-num">{{ d.costo | moneda }}</td>
+                  <td class="cs-num">{{ d.mermas | moneda }}</td>
+                  <td class="cs-num" [class.cs-error]="d.utilidad < 0">{{ d.utilidad | moneda }}</td>
+                  <td class="cs-num">{{ d.margenPct | porcentaje }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="cs-panel">
+      <mat-card-header><mat-card-title>Por tipo de venta</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @if (r.porTipoVenta.length) {
+          <table class="cs-tabla">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th class="cs-num">Ventas</th>
+                <th class="cs-num">Total</th>
+                <th class="cs-num">Participación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of r.porTipoVenta; track t.type) {
+                <tr>
+                  <td><strong>{{ t.type }}</strong></td>
+                  <td class="cs-num">{{ t.ventasCount | entero }}</td>
+                  <td class="cs-num">{{ t.total | moneda }}</td>
+                  <td class="cs-num">{{ t.porcentaje | porcentaje }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <p class="cs-nota">
+            <mat-icon inline>info</mat-icon>
+            El porcentaje indica el peso de cada tipo dentro del total. No son cobros:
+            las ventas a crédito se transforman en deuda hasta que el cliente paga un abono.
+          </p>
+        } @else {
+          <p class="cs-vacio">Sin ventas en el período.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

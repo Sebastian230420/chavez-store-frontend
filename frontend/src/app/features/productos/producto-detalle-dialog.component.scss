@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.cs-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cs-refrescar {
+  margin-left: auto;
+}
+
+.cs-ficha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+  background: #fbfcfd;
+  margin-bottom: 14px;
+}
+
+.cs-ficha__dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+  }
+
+  strong {
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+}
+
+.cs-kpis--compactas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.cs-metrica {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--cs-borde);
+  border-radius: 10px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cs-texto-suave);
+  }
+
+  strong {
+    font-size: 19px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    font-size: 11px;
+  }
+}
+
+.cs-titulo-seccion {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cs-texto-suave);
+}
+
+.cs-nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f3f5f7;
+  color: var(--cs-texto-suave);
+  font-size: 12.5px;
+}
